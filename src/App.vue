@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import HelloWorld from './components/HelloWorld.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
 </script>
 
 <template>
@@ -13,6 +16,8 @@ import HelloWorld from './components/HelloWorld.vue'
       <nav>
         <RouterLink to="/">Home</RouterLink>
         <RouterLink to="/about">About</RouterLink>
+        <RouterLink v-if="!authStore.session" to="/auth">Login</RouterLink>
+        <a v-else href="#" @click.prevent="authStore.logout">Logout</a>
       </nav>
     </div>
   </header>
