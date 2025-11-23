@@ -1,0 +1,163 @@
+import { apiCall } from "../api";
+
+/**
+ * Friending Concept API Functions
+ * Based on API spec in friending-api-generation.md and implementation in FriendingConcept.ts
+ *
+ * Note: The concept server creates endpoints based on method names from FriendingConcept.ts.
+ * If the backend uses different endpoint names than the spec, these will need to be adjusted.
+ */
+
+/**
+ * Sends a friend request from one user to another.
+ * API Spec: POST /api/Friending/request
+ * Implementation: requestFriend method expects { requester, requestee }
+ * @param from - The user sending the friend request
+ * @param to - The user receiving the friend request
+ * @returns Empty object on success, throws error on failure
+ */
+export async function requestFriend(
+  from: string,
+  to: string
+): Promise<Record<string, never>> {
+  return (await apiCall(
+    "/api/Friending/requestFriend",
+    { requester: from, requestee: to },
+    "requestFriend"
+  )) as Record<string, never>;
+}
+
+/**
+ * Accepts an existing friend request, creating a friendship.
+ * API Spec: POST /api/Friending/accept
+ * Implementation: acceptFriend method expects { requester, requestee }
+ * @param requester - The user who sent the friend request
+ * @param requestee - The user who received the friend request (and is now accepting)
+ * @returns Empty object on success, throws error on failure
+ */
+export async function acceptFriend(
+  requester: string,
+  requestee: string
+): Promise<Record<string, never>> {
+  return (await apiCall(
+    "/api/Friending/acceptFriend",
+    { requester, requestee },
+    "acceptFriend"
+  )) as Record<string, never>;
+}
+
+/**
+ * Rejects and deletes an existing friend request.
+ * API Spec: POST /api/Friending/reject
+ * Implementation: rejectFriend method expects { requester, requestee }
+ * @param requester - The user who sent the friend request
+ * @param requestee - The user who received the friend request (and is now rejecting)
+ * @returns Empty object on success, throws error on failure
+ */
+export async function rejectFriend(
+  requester: string,
+  requestee: string
+): Promise<Record<string, never>> {
+  return (await apiCall(
+    "/api/Friending/rejectFriend",
+    { requester, requestee },
+    "rejectFriend"
+  )) as Record<string, never>;
+}
+
+/**
+ * Removes an existing friendship between two users.
+ * API Spec: POST /api/Friending/remove
+ * Implementation: removeFriend method expects { remover, removed }
+ * @param u1 - First user (from API spec)
+ * @param u2 - Second user (from API spec)
+ * @returns Empty object on success, throws error on failure
+ */
+export async function removeFriend(
+  u1: string,
+  u2: string
+): Promise<Record<string, never>> {
+  return (await apiCall(
+    "/api/Friending/removeFriend",
+    { remover: u1, removed: u2 },
+    "removeFriend"
+  )) as Record<string, never>;
+}
+
+/**
+ * Checks if two users are friends.
+ * API Spec: POST /api/Friending/_areFriends
+ * Implementation: _areTheyFriends method expects { user1, user2 }
+ * @param u1 - First user (from API spec)
+ * @param u2 - Second user (from API spec)
+ * @returns Array with single object containing areFriends boolean
+ */
+export async function areTheyFriends(
+  u1: string,
+  u2: string
+): Promise<{ areFriends: boolean }[]> {
+  const response = await apiCall(
+    "/api/Friending/_areTheyFriends",
+    { user1: u1, user2: u2 },
+    "areTheyFriends"
+  );
+  return response as { areFriends: boolean }[];
+}
+
+/**
+ * Retrieves a list of all friends for a given user.
+ * API Spec: POST /api/Friending/_getFriends
+ * Implementation: _getAllFriends method expects { user }
+ * @param user - The user whose friends list to retrieve
+ * @returns Array of objects containing friend IDs
+ */
+export async function getAllFriends(
+  user: string
+): Promise<{ friend: string }[]> {
+  const response = await apiCall(
+    "/api/Friending/_getAllFriends",
+    { user },
+    "getAllFriends"
+  );
+  return response as { friend: string }[];
+}
+
+/**
+ * Retrieves all pending friend requests sent to a given user.
+ * API Spec: POST /api/Friending/_getIncomingRequests
+ * Implementation: _getAllOutgoingFriendRequests method (user is requestee)
+ * Note: The API spec uses "incoming" to mean requests sent TO the user.
+ * The implementation method name is reversed - it uses _getAllOutgoingFriendRequests for this.
+ * @param user - The user whose incoming friend requests to retrieve
+ * @returns Array of objects containing requester IDs (users who sent requests to the specified user)
+ */
+export async function getAllIncomingFriendRequests(
+  user: string
+): Promise<{ requester: string }[]> {
+  const response = await apiCall(
+    "/api/Friending/_getAllIncomingFriendRequests",
+    { user },
+    "getAllIncomingFriendRequests"
+  );
+  return response as { requester: string }[];
+}
+
+/**
+ * Retrieves all pending friend requests sent by a given user.
+ * API Spec: POST /api/Friending/_getOutgoingRequests
+ * Implementation: _getAllIncomingFriendRequests method (user is requester)
+ * Note: The API spec uses "outgoing" to mean requests sent BY the user.
+ * The implementation method name is reversed - it uses _getAllIncomingFriendRequests for this.
+ * @param user - The user whose outgoing friend requests to retrieve
+ * @returns Array of objects containing requestee IDs (users the specified user sent requests to)
+ */
+export async function getAllOutgoingFriendRequests(
+  user: string
+): Promise<{ requestee: string }[]> {
+  const response = await apiCall(
+    "/api/Friending/_getAllOutgoingFriendRequests",
+    { user },
+    "getAllOutgoingFriendRequests"
+  );
+  return response as { requestee: string }[];
+}
