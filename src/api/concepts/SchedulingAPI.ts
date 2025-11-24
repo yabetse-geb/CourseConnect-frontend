@@ -67,3 +67,14 @@ export async function getCourseInfo(courseIds: string[]): Promise<CourseInfo[]> 
 export async function getEventInfo(eventId: string): Promise<EventInfo[]> {
   return (await apiCall('/CourseCatalog/_getEventInfo', { event: eventId }, 'Get Event Info')) as EventInfo[];
 }
+
+/**
+ * SchedulingAPI - All functions exported together
+ */
+export const SchedulingAPI = {
+  defineCourse,
+  removeCourse,
+  getAllCourses,
+  getCourseInfo,
+  getEventInfo,
+};
