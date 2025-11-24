@@ -18,7 +18,7 @@ import { apiCall } from '../api';
  */
 export async function blockUser(user: string, target: string): Promise<void> {
     await apiCall(
-      '/api/Blocking/blockUser',
+      '/Blocking/blockUser',
       { blocker: user, userToBlock: target },
       'blockUser'
     );
@@ -34,7 +34,7 @@ export async function blockUser(user: string, target: string): Promise<void> {
    */
   export async function unblockUser(user: string, target: string): Promise<void> {
     await apiCall(
-      '/api/Blocking/unblockUser',
+      '/Blocking/unblockUser',
       { blocker: user, userToUnblock: target },
       'unblockUser'
     );
@@ -51,7 +51,7 @@ export async function blockUser(user: string, target: string): Promise<void> {
    */
   export async function isUserBlocked(user: string, target: string): Promise<{ isBlocked: boolean }[]> {
     const response = await apiCall(
-      '/api/Blocking/_isUserBlocked',
+      '/Blocking/_isUserBlocked',
       { primaryUser: user, secondaryUser: target },
       'isUserBlocked'
     );
@@ -70,7 +70,7 @@ export async function blockUser(user: string, target: string): Promise<void> {
    */
   export async function getBlockedUsers(user: string): Promise<{ target: string }[]> {
     const response = await apiCall(
-      '/api/Blocking/_blockedUsers',
+      '/Blocking/_blockedUsers',
       { user },
       'getBlockedUsers'
     );

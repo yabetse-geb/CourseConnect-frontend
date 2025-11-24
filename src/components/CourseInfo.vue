@@ -17,11 +17,23 @@
             <li 
               v-for="event in lectureEvents" 
               :key="event.event" 
-              class="event-item"
+              :class="['event-item', { 'event-scheduled': isEventScheduled(event.event) }]"
               @click="handleEventClick(event)"
             >
-              <div class="event-days">{{ formatDays(event.times.days) }}</div>
-              <div class="event-time">{{ formatTimeRange(event.times.startTime, event.times.endTime) }}</div>
+              <div class="radio-button" :class="{ 'radio-selected': isEventScheduled(event.event) }"></div>
+              <div class="event-content">
+                <div class="event-days">{{ formatDays(event.times.days) }}</div>
+                <div class="event-time">{{ formatTimeRange(event.times.startTime, event.times.endTime) }}</div>
+              </div>
+              <div class="event-actions" @click.stop>
+                <button 
+                  v-if="isEventScheduled(event.event)"
+                  @click.stop="handleRemoveEvent(event.event)"
+                  class="btn btn-remove btn-small"
+                >
+                  Remove
+                </button>
+              </div>
             </li>
           </ul>
         </div>
@@ -35,11 +47,23 @@
             <li 
               v-for="event in recitationEvents" 
               :key="event.event" 
-              class="event-item"
+              :class="['event-item', { 'event-scheduled': isEventScheduled(event.event) }]"
               @click="handleEventClick(event)"
             >
-              <div class="event-days">{{ formatDays(event.times.days) }}</div>
-              <div class="event-time">{{ formatTimeRange(event.times.startTime, event.times.endTime) }}</div>
+              <div class="radio-button" :class="{ 'radio-selected': isEventScheduled(event.event) }"></div>
+              <div class="event-content">
+                <div class="event-days">{{ formatDays(event.times.days) }}</div>
+                <div class="event-time">{{ formatTimeRange(event.times.startTime, event.times.endTime) }}</div>
+              </div>
+              <div class="event-actions" @click.stop>
+                <button 
+                  v-if="isEventScheduled(event.event)"
+                  @click.stop="handleRemoveEvent(event.event)"
+                  class="btn btn-remove btn-small"
+                >
+                  Remove
+                </button>
+              </div>
             </li>
           </ul>
         </div>
@@ -54,10 +78,13 @@ import type { Course, CourseEvent } from '@/api/concepts/CourseCatalog'
 
 const props = defineProps<{
   course: Course | null
+  scheduledEventIds?: Set<string>
 }>()
 
 const emit = defineEmits<{
   (e: 'event-selected', event: CourseEvent, courseName: string): void
+  (e: 'add-event', eventId: string): void
+  (e: 'remove-event', eventId: string): void
 }>()
 
 // Filter events by type
@@ -75,6 +102,23 @@ const recitationEvents = computed(() => {
   )
 })
 
+// Find which lecture/recitation is currently scheduled for this course
+const scheduledLectureId = computed(() => {
+  if (!props.course || !props.scheduledEventIds) return null
+  const scheduled = lectureEvents.value.find(event => 
+    props.scheduledEventIds?.has(event.event)
+  )
+  return scheduled?.event ?? null
+})
+
+const scheduledRecitationId = computed(() => {
+  if (!props.course || !props.scheduledEventIds) return null
+  const scheduled = recitationEvents.value.find(event => 
+    props.scheduledEventIds?.has(event.event)
+  )
+  return scheduled?.event ?? null
+})
+
 // Helper functions for formatting
 const formatDays = (days: string[]): string => {
   return days.join(', ')
@@ -85,9 +129,50 @@ const formatTimeRange = (startTime: string, endTime: string): string => {
 }
 
 const handleEventClick = (event: CourseEvent) => {
-  if (props.course) {
-    emit('event-selected', event, props.course.name)
+  console.log('handleEventClick called', event)
+  if (!props.course) {
+    console.log('No course selected')
+    return
   }
+  
+  const isLecture = event.type.toLowerCase().includes('lecture')
+  const isRecitation = event.type.toLowerCase().includes('recitation')
+  const isCurrentlyScheduled = isEventScheduled(event.event)
+  
+  console.log('Event details:', { isLecture, isRecitation, isCurrentlyScheduled, eventId: event.event })
+  
+  // Emit event-selected for calendar preview
+  emit('event-selected', event, props.course.name)
+  
+  // If already scheduled, do nothing (user can use Remove button)
+  if (isCurrentlyScheduled) {
+    console.log('Event already scheduled, not adding')
+    return
+  }
+  
+  // If not scheduled, automatically add it
+  // But first, remove any existing lecture/recitation of the same type
+  if (isLecture && scheduledLectureId.value && scheduledLectureId.value !== event.event) {
+    // Remove the currently scheduled lecture
+    console.log('Removing existing lecture:', scheduledLectureId.value)
+    emit('remove-event', scheduledLectureId.value)
+  } else if (isRecitation && scheduledRecitationId.value && scheduledRecitationId.value !== event.event) {
+    // Remove the currently scheduled recitation
+    console.log('Removing existing recitation:', scheduledRecitationId.value)
+    emit('remove-event', scheduledRecitationId.value)
+  }
+  
+  // Add the new event
+  console.log('Emitting add-event for:', event.event)
+  emit('add-event', event.event)
+}
+
+const isEventScheduled = (eventId: string): boolean => {
+  return props.scheduledEventIds?.has(eventId) ?? false
+}
+
+const handleRemoveEvent = (eventId: string) => {
+  emit('remove-event', eventId)
 }
 </script>
 
@@ -125,6 +210,47 @@ const handleEventClick = (event: CourseEvent) => {
   margin: 0;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--color-border);
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-add {
+  background-color: hsla(160, 100%, 37%, 1);
+  color: white;
+}
+
+.btn-add:hover {
+  background-color: hsla(160, 100%, 32%, 1);
+}
+
+.btn-remove {
+  background-color: #e57373;
+  color: white;
+}
+
+.btn-remove:hover {
+  background-color: #ef5350;
+}
+
+.btn-small {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
 }
 
 .events-container {
@@ -166,8 +292,41 @@ const handleEventClick = (event: CourseEvent) => {
   background-color: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: 4px;
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s, border-color 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+
+.radio-button {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  background-color: var(--color-background);
+  flex-shrink: 0;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.radio-button.radio-selected {
+  border-color: hsla(160, 100%, 37%, 1);
+  background-color: hsla(160, 100%, 37%, 1);
+  position: relative;
+}
+
+.radio-button.radio-selected::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
 }
 
 .event-item:hover {
@@ -176,11 +335,31 @@ const handleEventClick = (event: CourseEvent) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.event-item.event-scheduled {
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 2px solid #4caf50;
+}
+
+.event-item.event-scheduled:hover {
+  background-color: rgba(76, 175, 80, 0.15);
+}
+
+.event-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.event-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .event-days {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 0.25rem;
 }
 
 .event-time {

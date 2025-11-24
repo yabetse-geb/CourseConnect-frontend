@@ -42,7 +42,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import ScheduleBlock from './ScheduleBlock.vue'
-import type { CourseEvent } from '@/api/concepts/CourseCatalog'
+import type { CourseEvent, EventInfo } from '@/api/concepts/CourseCatalog'
 
 interface ClassBlock {
   id: string
@@ -60,6 +60,7 @@ interface TemporaryEvent {
 
 const props = defineProps<{
   temporaryEvent?: TemporaryEvent | null
+  scheduledEvents: EventInfo[]
 }>()
 
 const weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI']
@@ -97,9 +98,34 @@ const temporaryBlocks = computed<ClassBlock[]>(() => {
   }))
 })
 
-// All blocks (only temporary events now)
+// Convert scheduled events to schedule blocks
+const scheduledBlocks = computed<ClassBlock[]>(() => {
+  if (!props.scheduledEvents || props.scheduledEvents.length === 0) return []
+  
+  const blocks: ClassBlock[] = []
+  props.scheduledEvents.forEach((eventInfo) => {
+    const startTime = timeToHours(eventInfo.times.startTime)
+    const duration = calculateDuration(eventInfo.times.startTime, eventInfo.times.endTime)
+    
+    // Create a separate block for each day with green color
+    eventInfo.times.days.forEach((day) => {
+      blocks.push({
+        id: `scheduled-${eventInfo.event}-${day}`,
+        code: eventInfo.name,
+        day: day,
+        startTime: startTime,
+        duration: duration,
+        color: 'green' as const
+      })
+    })
+  })
+  
+  return blocks
+})
+
+// All blocks (temporary events + scheduled events)
 const allBlocks = computed<ClassBlock[]>(() => {
-  return temporaryBlocks.value
+  return [...scheduledBlocks.value, ...temporaryBlocks.value]
 })
 
 const getBlocksForDay = (day: string) => {

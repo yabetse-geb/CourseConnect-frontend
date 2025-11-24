@@ -29,7 +29,7 @@ function getSessionToken(): string {
 export async function createSchedule(): Promise<{ schedule: string }> {
   const session = getSessionToken();
   const response = await apiCall(
-    "/api/Scheduling/createSchedule",
+    "/Scheduling/createSchedule",
     { session },
     "createSchedule"
   );
@@ -47,7 +47,7 @@ export async function scheduleEvent(
 ): Promise<Record<string, never>> {
   const session = getSessionToken();
   return (await apiCall(
-    "/api/Scheduling/scheduleEvent",
+    "/Scheduling/scheduleEvent",
     { session, event },
     "scheduleEvent"
   )) as Record<string, never>;
@@ -64,7 +64,7 @@ export async function unscheduleEvent(
 ): Promise<Record<string, never>> {
   const session = getSessionToken();
   return (await apiCall(
-    "/api/Scheduling/unscheduleEvent",
+    "/Scheduling/unscheduleEvent",
     { session, event },
     "unscheduleEvent"
   )) as Record<string, never>;
@@ -79,7 +79,7 @@ export async function unscheduleEvent(
 export async function getUserSchedule(user: string): Promise<{ event: string }[]> {
   const session = getSessionToken();
   const response = await apiCall(
-    "/api/Scheduling/_getUserSchedule",
+    "/Scheduling/_getUserSchedule",
     { user, session },
     "getUserSchedule"
   );
@@ -97,7 +97,7 @@ export async function getScheduleComparison(
 ): Promise<{ event: string }[]> {
   const session = getSessionToken();
   const response = await apiCall(
-    "/api/Scheduling/_getScheduleComparison",
+    "/Scheduling/_getScheduleComparison",
     { session, user2 },
     "getScheduleComparison"
   );

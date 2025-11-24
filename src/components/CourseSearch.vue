@@ -65,128 +65,16 @@ const filters = reactive({
   searchQuery: ''
 })
 
-// Dummy course data for development fallback
-const dummyCourses: Course[] = [
-  {
-    course: 'course-1',
-    name: '6.0001',
-    events: [
-      {
-        event: 'event-1',
-        type: 'Lecture',
-        times: {
-          days: ['MON', 'WED', 'FRI'],
-          startTime: '10:00',
-          endTime: '11:00'
-        }
-      },
-      {
-        event: 'event-2',
-        type: 'Recitation',
-        times: {
-          days: ['TUE'],
-          startTime: '14:00',
-          endTime: '15:00'
-        }
-      }
-    ]
-  },
-  {
-    course: 'course-2',
-    name: '6.006',
-    events: [
-      {
-        event: 'event-3',
-        type: 'Lecture',
-        times: {
-          days: ['TUE', 'THU'],
-          startTime: '11:00',
-          endTime: '12:30'
-        }
-      }
-    ]
-  },
-  {
-    course: 'course-3',
-    name: '18.06',
-    events: [
-      {
-        event: 'event-4',
-        type: 'Lecture',
-        times: {
-          days: ['MON', 'WED', 'FRI'],
-          startTime: '13:00',
-          endTime: '14:00'
-        }
-      }
-    ]
-  },
-  {
-    course: 'course-4',
-    name: '6.034',
-    events: [
-      {
-        event: 'event-5',
-        type: 'Lecture',
-        times: {
-          days: ['TUE', 'THU'],
-          startTime: '10:00',
-          endTime: '11:30'
-        }
-      }
-    ]
-  },
-  {
-    course: 'course-5',
-    name: '6.813',
-    events: [
-      {
-        event: 'event-6',
-        type: 'Lecture',
-        times: {
-          days: ['MON', 'WED'],
-          startTime: '14:00',
-          endTime: '15:30'
-        }
-      },
-      {
-        event: 'event-7',
-        type: 'Lab',
-        times: {
-          days: ['FRI'],
-          startTime: '10:00',
-          endTime: '12:00'
-        }
-      }
-    ]
-  },
-  {
-    course: 'course-6',
-    name: '14.01',
-    events: [
-      {
-        event: 'event-8',
-        type: 'Lecture',
-        times: {
-          days: ['TUE', 'THU'],
-          startTime: '09:00',
-          endTime: '10:30'
-        }
-      }
-    ]
-  }
-]
-
 // Computed property for filtered courses
 const filteredCourses = computed(() => {
   if (!filters.searchQuery.trim()) {
-    return courses.value
+    return [...courses.value].sort((a, b) => a.name.localeCompare(b.name))
   }
 
   const query = filters.searchQuery.toLowerCase().trim()
-  return courses.value.filter(course =>
-    course.name.toLowerCase().includes(query)
-  )
+  return courses.value
+    .filter(course => course.name.toLowerCase().includes(query))
+    .sort((a, b) => a.name.localeCompare(b.name))
 })
 
 // Methods
@@ -196,13 +84,10 @@ const fetchCourses = async () => {
 
   try {
     const fetchedCourses = await getAllCourses()
-    // Use dummy data if API returns empty array, otherwise use fetched courses
-    courses.value = fetchedCourses.length > 0 ? fetchedCourses : dummyCourses
+    courses.value = fetchedCourses
   } catch (err) {
-    // On error, fall back to dummy data for development
-    console.warn('API call failed, using dummy data:', err)
-    courses.value = dummyCourses
-    error.value = null // Clear error so UI doesn't show error state
+    error.value = err instanceof Error ? err.message : 'Failed to fetch courses'
+    courses.value = []
   } finally {
     loading.value = false
   }

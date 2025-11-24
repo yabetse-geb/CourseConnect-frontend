@@ -14,7 +14,6 @@ const isAuthPage = computed(() => route.path === '/auth')
     <nav>
       <RouterLink to="/">Home</RouterLink>
       <RouterLink to="/scheduling">Scheduling</RouterLink>
-      <RouterLink to="/courses">Courses</RouterLink>
       <a href="#" @click.prevent="authStore.logout">Logout</a>
     </nav>
   </header>

@@ -78,7 +78,7 @@ export async function removeFriend(
   u2: string
 ): Promise<Record<string, never>> {
   return (await apiCall(
-    "/api/Friending/removeFriend",
+    "/Friending/removeFriend",
     { remover: u1, removed: u2 },
     "removeFriend"
   )) as Record<string, never>;
@@ -97,7 +97,7 @@ export async function areTheyFriends(
   u2: string
 ): Promise<{ areFriends: boolean }[]> {
   const response = await apiCall(
-    "/api/Friending/_areTheyFriends",
+    "/Friending/_areTheyFriends",
     { user1: u1, user2: u2 },
     "areTheyFriends"
   );
@@ -115,7 +115,7 @@ export async function getAllFriends(
   user: string
 ): Promise<{ friend: string }[]> {
   const response = await apiCall(
-    "/api/Friending/_getAllFriends",
+    "/Friending/_getAllFriends",
     { user },
     "getAllFriends"
   );
@@ -135,7 +135,7 @@ export async function getAllIncomingFriendRequests(
   user: string
 ): Promise<{ requester: string }[]> {
   const response = await apiCall(
-    "/api/Friending/_getAllIncomingFriendRequests",
+    "/Friending/_getAllIncomingFriendRequests",
     { user },
     "getAllIncomingFriendRequests"
   );
@@ -155,7 +155,7 @@ export async function getAllOutgoingFriendRequests(
   user: string
 ): Promise<{ requestee: string }[]> {
   const response = await apiCall(
-    "/api/Friending/_getAllOutgoingFriendRequests",
+    "/Friending/_getAllOutgoingFriendRequests",
     { user },
     "getAllOutgoingFriendRequests"
   );
