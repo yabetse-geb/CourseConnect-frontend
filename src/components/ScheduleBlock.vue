@@ -5,7 +5,6 @@
     :style="blockStyle"
   >
     <div class="block-code">{{ code }}</div>
-    <div class="block-room">{{ room }}</div>
   </div>
 </template>
 
@@ -14,17 +13,16 @@ import { computed } from 'vue'
 
 interface Props {
   code: string
-  room: string
   startTime: number // in hours (e.g., 9.5 for 9:30 AM)
   duration: number // in hours
-  color: 'red' | 'green' | 'pink' | 'gray'
+  color: 'red' | 'green' | 'pink' | 'gray' | 'blue'
   startHour?: number // First hour in the grid (default: 8)
   hourHeight?: number // Height of each hour slot in pixels (default: 60)
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  startHour: 8,
-  hourHeight: 60
+  startHour: 5,
+  hourHeight: 50
 })
 
 const blockStyle = computed(() => {
@@ -58,13 +56,7 @@ const blockStyle = computed(() => {
 
 .block-code {
   font-weight: 600;
-  margin-bottom: 2px;
   color: white;
-}
-
-.block-room {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.95);
 }
 
 /* Color classes */
@@ -86,5 +78,10 @@ const blockStyle = computed(() => {
 .class-block.gray {
   background: #90a4ae;
   border: 1px solid #607d8b;
+}
+
+.class-block.blue {
+  background: #64b5f6;
+  border: 1px solid #1976d2;
 }
 </style>

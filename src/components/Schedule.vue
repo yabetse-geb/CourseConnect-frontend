@@ -29,7 +29,6 @@
             v-for="block in getBlocksForDay(day)"
             :key="block.id"
             :code="block.code"
-            :room="block.room"
             :start-time="block.startTime"
             :duration="block.duration"
             :color="block.color"
@@ -41,117 +40,74 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 import ScheduleBlock from './ScheduleBlock.vue'
+import type { CourseEvent } from '@/api/concepts/CourseCatalog'
 
 interface ClassBlock {
   id: string
   code: string
-  room: string
   day: string
   startTime: number // in hours (e.g., 9.5 for 9:30 AM)
   duration: number // in hours
-  color: 'red' | 'green' | 'pink' | 'gray'
+  color: 'red' | 'green' | 'pink' | 'gray' | 'blue'
 }
 
-const weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI']
-const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+interface TemporaryEvent {
+  event: CourseEvent
+  courseName: string
+}
 
-// Dummy schedule data
-const scheduleBlocks = ref<ClassBlock[]>([
-  // Monday
-  {
-    id: '1',
-    code: '7.012 lec',
-    room: '10-250',
-    day: 'MON',
-    startTime: 10,
-    duration: 1,
-    color: 'gray'
-  },
-  {
-    id: '2',
-    code: '8.02 Physics',
-    room: '26-100',
-    day: 'MON',
-    startTime: 13,
-    duration: 1.5,
-    color: 'green'
-  },
-  // Tuesday
-  {
-    id: '3',
-    code: '7.012 rec',
-    room: '26-204',
-    day: 'TUE',
-    startTime: 9,
-    duration: 1,
-    color: 'gray'
-  },
-  {
-    id: '4',
-    code: '18.03 Differential equations',
-    room: '10-250',
-    day: 'TUE',
-    startTime: 13,
-    duration: 1.5,
-    color: 'pink'
-  },
-  // Wednesday
-  {
-    id: '5',
-    code: '7.012 lec',
-    room: '10-250',
-    day: 'WED',
-    startTime: 10,
-    duration: 1,
-    color: 'gray'
-  },
-  {
-    id: '6',
-    code: '8.02 Physics',
-    room: '26-100',
-    day: 'WED',
-    startTime: 13,
-    duration: 1.5,
-    color: 'green'
-  },
-  // Thursday
-  {
-    id: '7',
-    code: '7.012 rec',
-    room: '26-204',
-    day: 'THU',
-    startTime: 9,
-    duration: 1,
-    color: 'gray'
-  },
-  {
-    id: '8',
-    code: '18.03 Differential equations',
-    room: '10-250',
-    day: 'THU',
-    startTime: 13,
-    duration: 1.5,
-    color: 'pink'
-  },
-  // Friday
-  {
-    id: '9',
-    code: '7.012 lec',
-    room: '10-250',
-    day: 'FRI',
-    startTime: 10,
-    duration: 1,
-    color: 'gray'
-  }
-])
+const props = defineProps<{
+  temporaryEvent?: TemporaryEvent | null
+}>()
+
+const weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI']
+const hours = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+
+// Convert "HH:MM" string to decimal hours
+const timeToHours = (timeStr: string): number => {
+  const parts = timeStr.split(':')
+  const hours = Number(parts[0]) || 0
+  const minutes = Number(parts[1]) || 0
+  return hours + minutes / 60
+}
+
+// Calculate duration in hours from start and end time strings
+const calculateDuration = (startTime: string, endTime: string): number => {
+  return timeToHours(endTime) - timeToHours(startTime)
+}
+
+// Convert temporary event to schedule blocks
+const temporaryBlocks = computed<ClassBlock[]>(() => {
+  if (!props.temporaryEvent) return []
+  
+  const { event, courseName } = props.temporaryEvent
+  const startTime = timeToHours(event.times.startTime)
+  const duration = calculateDuration(event.times.startTime, event.times.endTime)
+  
+  // Create a separate block for each day with blue color
+  return event.times.days.map((day) => ({
+    id: `temp-${event.event}-${day}`,
+    code: courseName,
+    day: day,
+    startTime: startTime,
+    duration: duration,
+    color: 'blue' as const
+  }))
+})
+
+// All blocks (only temporary events now)
+const allBlocks = computed<ClassBlock[]>(() => {
+  return temporaryBlocks.value
+})
 
 const getBlocksForDay = (day: string) => {
-  return scheduleBlocks.value.filter(block => block.day === day)
+  return allBlocks.value.filter(block => block.day === day)
 }
 
 const formatHour = (hour: number) => {
+  if (hour === 0 || hour === 24) return 'midnight'
   if (hour === 12) return 'noon'
   if (hour < 12) return `${hour} AM`
   return `${hour - 12} PM`
@@ -163,6 +119,9 @@ const formatHour = (hour: number) => {
   width: 100%;
   padding: 20px;
   background: white;
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .calendar {
@@ -186,7 +145,7 @@ const formatHour = (hour: number) => {
 }
 
 .time-label {
-  height: 60px;
+  height: 50px;
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
@@ -223,7 +182,7 @@ const formatHour = (hour: number) => {
 }
 
 .hour-slot {
-  height: 60px;
+  height: 50px;
   border-bottom: 1px solid #f0f0f0;
 }
 </style>
