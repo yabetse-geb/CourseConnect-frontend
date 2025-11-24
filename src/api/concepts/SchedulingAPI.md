@@ -10,20 +10,20 @@
 
 ### POST /api/Scheduling/createSchedule
 
-**Description:** Creates a new, empty schedule for a specified user.
+**Description:** Creates a new, empty schedule for the authenticated user.
 
 **Requirements:**
-- The given `user` does not already have a schedule.
+- The authenticated user (identified by `session`) does not already have a schedule.
 
 **Effects:**
 - Creates a new, empty `Schedule` `s`.
-- Associates `s` with the `user`.
+- Associates `s` with the authenticated user.
 - Returns the new `Schedule`'s identifier as `schedule`.
 
 **Request Body:**
 ```json
 {
-  "user": "string"
+  "session": "string"
 }
 ```
 
@@ -43,18 +43,18 @@
 ---
 ### POST /api/Scheduling/scheduleEvent
 
-**Description:** Adds an event to a user's schedule.
+**Description:** Adds an event to the authenticated user's schedule.
 
 **Requirements:**
-- The `user` has a schedule.
+- The authenticated user (identified by `session`) has a schedule.
 
 **Effects:**
-- Adds the `event` to the `user`'s schedule.
+- Adds the `event` to the authenticated user's schedule.
 
 **Request Body:**
 ```json
 {
-  "user": "string",
+  "session": "string",
   "event": "string"
 }
 ```
@@ -73,19 +73,19 @@
 ---
 ### POST /api/Scheduling/unscheduleEvent
 
-**Description:** Removes an event from a user's schedule.
+**Description:** Removes an event from the authenticated user's schedule.
 
 **Requirements:**
-- The `user` has a schedule.
-- The `event` is in the `user`'s schedule.
+- The authenticated user (identified by `session`) has a schedule.
+- The `event` is in the authenticated user's schedule.
 
 **Effects:**
-- Removes the `event` from the `user`'s schedule.
+- Removes the `event` from the authenticated user's schedule.
 
 **Request Body:**
 ```json
 {
-  "user": "string",
+  "session": "string",
   "event": "string"
 }
 ```

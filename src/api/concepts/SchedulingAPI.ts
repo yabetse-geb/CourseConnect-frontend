@@ -1,4 +1,5 @@
 import { apiCall } from "../api";
+import { useAuthStore } from "@/stores/auth";
 
 /**
  * Scheduling Concept API Functions
@@ -9,15 +10,27 @@ import { apiCall } from "../api";
  */
 
 /**
+ * Helper function to get the current session token from the auth store
+ */
+function getSessionToken(): string {
+  const authStore = useAuthStore();
+  const session = authStore.session;
+  if (!session) {
+    throw new Error("No active session. Please log in.");
+  }
+  return session;
+}
+
+/**
  * Creates a new, empty schedule for a specified user.
  * API Spec: POST /api/Scheduling/createSchedule
- * @param user - The user for whom to create a schedule
  * @returns Object containing the new schedule's identifier
  */
-export async function createSchedule(user: string): Promise<{ schedule: string }> {
+export async function createSchedule(): Promise<{ schedule: string }> {
+  const session = getSessionToken();
   const response = await apiCall(
     "/api/Scheduling/createSchedule",
-    { user },
+    { session },
     "createSchedule"
   );
   return response as { schedule: string };
@@ -26,17 +39,16 @@ export async function createSchedule(user: string): Promise<{ schedule: string }
 /**
  * Adds an event to a user's schedule.
  * API Spec: POST /api/Scheduling/scheduleEvent
- * @param user - The user whose schedule to modify
  * @param event - The event ID to add to the schedule
  * @returns Empty object on success, throws error on failure
  */
 export async function scheduleEvent(
-  user: string,
   event: string
 ): Promise<Record<string, never>> {
+  const session = getSessionToken();
   return (await apiCall(
     "/api/Scheduling/scheduleEvent",
-    { user, event },
+    { session, event },
     "scheduleEvent"
   )) as Record<string, never>;
 }
@@ -44,17 +56,16 @@ export async function scheduleEvent(
 /**
  * Removes an event from a user's schedule.
  * API Spec: POST /api/Scheduling/unscheduleEvent
- * @param user - The user whose schedule to modify
  * @param event - The event ID to remove from the schedule
  * @returns Empty object on success, throws error on failure
  */
 export async function unscheduleEvent(
-  user: string,
   event: string
 ): Promise<Record<string, never>> {
+  const session = getSessionToken();
   return (await apiCall(
     "/api/Scheduling/unscheduleEvent",
-    { user, event },
+    { session, event },
     "unscheduleEvent"
   )) as Record<string, never>;
 }
@@ -66,9 +77,10 @@ export async function unscheduleEvent(
  * @returns Array of objects containing event IDs
  */
 export async function getUserSchedule(user: string): Promise<{ event: string }[]> {
+  const session = getSessionToken();
   const response = await apiCall(
     "/api/Scheduling/_getUserSchedule",
-    { user },
+    { user, session },
     "getUserSchedule"
   );
   return response as { event: string }[];
@@ -85,9 +97,10 @@ export async function getScheduleComparison(
   user1: string,
   user2: string
 ): Promise<{ event: string }[]> {
+  const session = getSessionToken();
   const response = await apiCall(
     "/api/Scheduling/_getScheduleComparison",
-    { user1, user2 },
+    { user1, user2, session },
     "getScheduleComparison"
   );
   return response as { event: string }[];
