@@ -24,10 +24,9 @@ function getSessionToken(): string {
 /**
  * Creates a new, empty schedule for a specified user.
  * API Spec: POST /api/Scheduling/createSchedule
- * @param user - The user for whom to create a schedule
  * @returns Object containing the new schedule's identifier
  */
-export async function createSchedule(user: string): Promise<{ schedule: string }> {
+export async function createSchedule(): Promise<{ schedule: string }> {
   const session = getSessionToken();
   const response = await apiCall(
     "/api/Scheduling/createSchedule",
@@ -40,7 +39,6 @@ export async function createSchedule(user: string): Promise<{ schedule: string }
 /**
  * Adds an event to a user's schedule.
  * API Spec: POST /api/Scheduling/scheduleEvent
- * @param user - The user whose schedule to modify
  * @param event - The event ID to add to the schedule
  * @returns Empty object on success, throws error on failure
  */
@@ -58,7 +56,6 @@ export async function scheduleEvent(
 /**
  * Removes an event from a user's schedule.
  * API Spec: POST /api/Scheduling/unscheduleEvent
- * @param user - The user whose schedule to modify
  * @param event - The event ID to remove from the schedule
  * @returns Empty object on success, throws error on failure
  */
