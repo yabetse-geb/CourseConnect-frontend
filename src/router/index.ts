@@ -17,11 +17,6 @@ const router = createRouter({
       component: () => import("../views/SchedulingView.vue"),
     },
     {
-      path: '/courses',
-      name: 'courses',
-      component: () => import('../views/CoursesView.vue'),
-    },
-    {
       path: "/auth",
       name: "auth",
       component: () => import("../views/AuthView.vue"),
