@@ -45,7 +45,6 @@ export async function createSchedule(user: string): Promise<{ schedule: string }
  * @returns Empty object on success, throws error on failure
  */
 export async function scheduleEvent(
-  user: string,
   event: string
 ): Promise<Record<string, never>> {
   const session = getSessionToken();
@@ -64,7 +63,6 @@ export async function scheduleEvent(
  * @returns Empty object on success, throws error on failure
  */
 export async function unscheduleEvent(
-  user: string,
   event: string
 ): Promise<Record<string, never>> {
   const session = getSessionToken();
