@@ -4,65 +4,65 @@ import { apiCall } from "../api";
  * Friending Concept API Functions
  * Based on API spec in friending-api-generation.md and implementation in FriendingConcept.ts
  *
- * Note: The concept server creates endpoints based on method names from FriendingConcept.ts.
- * If the backend uses different endpoint names than the spec, these will need to be adjusted.
+ * Note: requestFriend, acceptFriend, and rejectFriend use sync endpoints.
+ * Other functions use concept endpoints.
  */
 
 /**
  * Sends a friend request from one user to another.
- * API Spec: POST /api/Friending/request
- * Implementation: requestFriend method expects { requester, requestee }
- * @param from - The user sending the friend request
- * @param to - The user receiving the friend request
- * @returns Empty object on success, throws error on failure
+ * Uses sync endpoint: /friending/request
+ * Sync: SendFriendRequest -> SendFriendResponse
+ * @param session - The session token of the user sending the request
+ * @param targetUsername - The username of the user receiving the friend request
+ * @returns Response with request and status ("sent"), throws error on failure
  */
 export async function requestFriend(
-  from: string,
-  to: string
-): Promise<Record<string, never>> {
+  session: string,
+  targetUsername: string
+): Promise<{ request: string; status: string }> {
   return (await apiCall(
-    "/api/Friending/requestFriend",
-    { requester: from, requestee: to },
-    "requestFriend"
-  )) as Record<string, never>;
+    "/friending/request",
+    { session, targetUsername },
+    "Send Friend Request"
+  )) as { request: string; status: string };
 }
 
 /**
  * Accepts an existing friend request, creating a friendship.
- * API Spec: POST /api/Friending/accept
- * Implementation: acceptFriend method expects { requester, requestee }
- * @param requester - The user who sent the friend request
- * @param requestee - The user who received the friend request (and is now accepting)
- * @returns Empty object on success, throws error on failure
+ * Uses sync endpoint: /friending/accept
+ * Sync: AcceptFriendRequest -> AcceptFriendResponse
+ * @param session - The session token of the user accepting the request
+ * @param requesterUsername - The username of the user who sent the friend request
+ * @returns Response with request and status ("accepted"), throws error on failure
  */
 export async function acceptFriend(
-  requester: string,
-  requestee: string
-): Promise<Record<string, never>> {
+  session: string,
+  requesterUsername: string
+): Promise<{ request: string; status: string }> {
   return (await apiCall(
-    "/api/Friending/acceptFriend",
-    { requester, requestee },
-    "acceptFriend"
-  )) as Record<string, never>;
+    "/friending/accept",
+    { session, requesterUsername },
+    "Accept Friend Request"
+  )) as { request: string; status: string };
 }
 
 /**
  * Rejects and deletes an existing friend request.
- * API Spec: POST /api/Friending/reject
- * Implementation: rejectFriend method expects { requester, requestee }
- * @param requester - The user who sent the friend request
- * @param requestee - The user who received the friend request (and is now rejecting)
- * @returns Empty object on success, throws error on failure
+ * Uses sync endpoint: /friending/reject
+ * Sync: RejectFriendRequest -> RejectFriendResponse
+ * @param session - The session token of the user rejecting the request
+ * @param requesterUsername - The username of the user who sent the friend request
+ * @returns Response with request and status ("rejected"), throws error on failure
  */
 export async function rejectFriend(
-  requester: string,
-  requestee: string
-): Promise<Record<string, never>> {
+  session: string,
+  requesterUsername: string
+): Promise<{ request: string; status: string }> {
   return (await apiCall(
-    "/api/Friending/rejectFriend",
-    { requester, requestee },
-    "rejectFriend"
-  )) as Record<string, never>;
+    "/friending/reject",
+    { session, requesterUsername },
+    "Reject Friend Request"
+  )) as { request: string; status: string };
 }
 
 /**

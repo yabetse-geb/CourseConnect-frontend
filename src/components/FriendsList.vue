@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { getAllFriends, removeFriend } from "@/api/concepts/FriendingAPI";
+import { useAuthStore } from "@/stores/auth";
+import {
+  getAllFriends,
+  removeFriend,
+  requestFriend,
+} from "@/api/concepts/FriendingAPI";
 
 interface Props {
   userId: string | null;
 }
 
 const props = defineProps<Props>();
+const authStore = useAuthStore();
 
 const friends = ref<{ friend: string }[]>([]);
 const searchQuery = ref("");
-const newFriendId = ref("");
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -37,12 +42,23 @@ async function loadFriends() {
 }
 
 async function handleAddFriend() {
-  if (!props.userId || !newFriendId.value.trim()) return;
+  if (!authStore.session || !searchQuery.value.trim()) return;
 
-  // TODO: Implement friend request functionality
-  // For now, just clear the input
-  newFriendId.value = "";
-  alert("Friend request functionality to be implemented");
+  const usernameToAdd = searchQuery.value.trim();
+  loading.value = true;
+  error.value = null;
+
+  try {
+    await requestFriend(authStore.session, usernameToAdd);
+    searchQuery.value = "";
+    // Reload friends list to show the new friend if they accepted immediately
+    await loadFriends();
+  } catch (e: any) {
+    error.value = e.message || "Failed to send friend request";
+    console.error("Error sending friend request:", e);
+  } finally {
+    loading.value = false;
+  }
 }
 
 async function handleRemoveFriend(friendId: string) {
@@ -78,18 +94,9 @@ onMounted(() => {
         type="text"
         placeholder="Search:"
         class="search-input"
-      />
-      <button class="add-button" @click="handleAddFriend">Add</button>
-    </div>
-
-    <div class="add-friend-section">
-      <input
-        v-model="newFriendId"
-        type="text"
-        placeholder="Enter user ID"
-        class="new-friend-input"
         @keyup.enter="handleAddFriend"
       />
+      <button class="add-button" @click="handleAddFriend">Add</button>
     </div>
 
     <div v-if="error" class="error-message">{{ error }}</div>
@@ -148,6 +155,11 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 4px;
   background-color: var(--color-background);
+  color: white;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .add-button {
@@ -162,18 +174,6 @@ onMounted(() => {
 
 .add-button:hover {
   background-color: var(--color-button-hover);
-}
-
-.add-friend-section {
-  margin-top: -10px;
-}
-
-.new-friend-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background-color: var(--color-background);
 }
 
 .friends-list {

@@ -134,6 +134,7 @@ function handleEdit() {
 .page-header h1 {
   font-size: 2rem;
   margin-bottom: 15px;
+  color: white;
 }
 
 .top-nav {
@@ -157,7 +158,7 @@ function handleEdit() {
 
 .nav-link {
   text-decoration: none;
-  color: var(--color-text);
+  color: white;
   padding: 5px 10px;
 }
 
@@ -209,7 +210,7 @@ function handleEdit() {
 .detail-item label {
   font-weight: bold;
   font-size: 0.9rem;
-  color: var(--color-text);
+  color: white;
 }
 
 .detail-item input,
@@ -218,10 +219,16 @@ function handleEdit() {
   border: 1px solid var(--color-border);
   border-radius: 4px;
   background-color: var(--color-background);
+  color: white;
 }
 
 .detail-item input {
   width: 100%;
+  color: white;
+}
+
+.detail-item input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .edit-button {
