@@ -2,8 +2,14 @@
 import { RouterLink, RouterView } from "vue-router";
 import HelloWorld from "./components/HelloWorld.vue";
 import { useAuthStore } from "@/stores/auth";
+import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { computed } from 'vue'
 
 const authStore = useAuthStore()
+const route = useRoute()
+
+const isAuthPage = computed(() => route.path === '/auth')
 </script>
 
 <template>
@@ -21,71 +27,72 @@ const authStore = useAuthStore()
         <a v-else href="#" @click.prevent="authStore.logout">Logout</a>
       </nav>
     </div>
+  <header v-if="!isAuthPage">
+    <nav>
+      <RouterLink to="/">Home</RouterLink>
+      <RouterLink to="/scheduling">Scheduling</RouterLink>
+      <a href="#" @click.prevent="authStore.logout">Logout</a>
+    </nav>
   </header>
 
-  <RouterView />
+  <main :class="{ 'no-nav': isAuthPage }">
+    <RouterView />
+  </main>
 </template>
 
 <style scoped>
 header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: var(--color-background-soft);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem 0;
 }
 
 nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 1rem;
 }
 
 nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
+  color: var(--color-text);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
-nav a:first-of-type {
-  border: 0;
+nav a:hover {
+  background-color: var(--color-background);
+}
+
+nav a.router-link-exact-active {
+  color: var(--color-heading);
+  font-weight: 500;
+}
+
+main {
+  margin-top: 60px;
+  min-height: calc(100vh - 60px);
+  width: 100%;
+}
+
+main.no-nav {
+  margin-top: 0;
+  min-height: 100vh;
 }
 
 @media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
   nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
+    justify-content: flex-start;
+    padding: 0 2rem;
   }
 }
 </style>
