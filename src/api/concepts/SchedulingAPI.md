@@ -1,45 +1,36 @@
-# API Specification: CourseCatalog Concept
+# API Specification: Scheduling Concept
 
-**Purpose:** Track the courses offered in a school with all of the information for each course regarding times, class types, name.
+**Purpose:** Track events in one's schedule and compare with others
+
+**Note:** All ID types (`User`, `Event`, `Schedule`) are represented as strings.
 
 ---
 
 ## API Endpoints
 
-### POST /api/CourseCatalog/defineCourse
+### POST /api/Scheduling/createSchedule
 
-**Description:** Creates a new course with its associated event information.
+**Description:** Creates a new, empty schedule for a specified user.
 
 **Requirements:**
-- For each meeting time provided, `startTime` must be less than `endTime`.
-- A course with the given `name` must not already exist.
+- The given `user` does not already have a schedule.
 
 **Effects:**
-- Creates a new course record.
-- Creates new event records for each item in the `events` array and associates them with the new course.
-- Returns the ID of the newly created course.
+- Creates a new, empty `Schedule` `s`.
+- Associates `s` with the `user`.
+- Returns the new `Schedule`'s identifier as `schedule`.
 
 **Request Body:**
 ```json
 {
-  "name": "string",
-  "events": [
-    {
-      "type": "string",
-      "times": {
-        "days": ["string"],
-        "startTime": "string",
-        "endTime": "string"
-      }
-    }
-  ]
+  "user": "string"
 }
 ```
 
 **Success Response Body (Action):**
 ```json
 {
-  "course": "ID"
+  "schedule": "string"
 }
 ```
 
@@ -50,21 +41,21 @@
 }
 ```
 ---
-### POST /api/CourseCatalog/removeCourse
+### POST /api/Scheduling/scheduleEvent
 
-**Description:** Removes a specified course and all of its associated events from the catalog.
+**Description:** Adds an event to a user's schedule.
 
 **Requirements:**
-- The `course` with the given ID must exist.
+- The `user` has a schedule.
 
 **Effects:**
-- Deletes the course record.
-- Deletes all event records associated with that course.
+- Adds the `event` to the `user`'s schedule.
 
 **Request Body:**
 ```json
 {
-  "course": "ID"
+  "user": "string",
+  "event": "string"
 }
 ```
 
@@ -80,38 +71,62 @@
 }
 ```
 ---
-### POST /api/CourseCatalog/_getAllCourses
+### POST /api/Scheduling/unscheduleEvent
 
-**Description:** Retrieves detailed information for all courses in the catalog.
+**Description:** Removes an event from a user's schedule.
 
 **Requirements:**
-- None.
+- The `user` has a schedule.
+- The `event` is in the `user`'s schedule.
 
 **Effects:**
-- Returns an array of all courses, each with its name and a list of its associated events.
+- Removes the `event` from the `user`'s schedule.
 
 **Request Body:**
+```json
+{
+  "user": "string",
+  "event": "string"
+}
+```
+
+**Success Response Body (Action):**
 ```json
 {}
 ```
 
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+---
+### POST /api/Scheduling/_getUserSchedule
+
+**Description:** Retrieves all event IDs from a user's schedule.
+
+**Requirements:**
+- The `user` has a schedule.
+
+**Effects:**
+- Returns a set of all events (id's) in the user's schedule.
+
+**Request Body:**
+```json
+{
+  "user": "string"
+}
+```
+
 **Success Response Body (Query):**
 ```json
 [
   {
-    "course": "ID",
-    "name": "string",
-    "events": [
-      {
-        "event": "ID",
-        "type": "string",
-        "times": {
-          "days": ["string"],
-          "startTime": "string",
-          "endTime": "string"
-        }
-      }
-    ]
+    "event": "string"
+  },
+  {
+    "event": "string"
   }
 ]
 ```
@@ -123,20 +138,21 @@
 }
 ```
 ---
-### POST /api/CourseCatalog/_getCourseInfo
+### POST /api/Scheduling/_getScheduleComparison
 
-**Description:** Retrieves detailed information for a specific list of courses.
+**Description:** Returns the common event IDs between the schedules of two users.
 
 **Requirements:**
-- All `courses` in the input array must exist.
+- Both `user1` and `user2` have schedules.
 
 **Effects:**
-- Returns an array of course information objects for each valid course ID provided.
+- Returns the common event id's between the schedules of `user1` and `user2`.
 
 **Request Body:**
 ```json
 {
-  "courses": ["ID"]
+  "user1": "string",
+  "user2": "string"
 }
 ```
 
@@ -144,58 +160,10 @@
 ```json
 [
   {
-    "name": "string",
-    "events": [
-      {
-        "event": "ID",
-        "type": "string",
-        "times": {
-          "days": ["string"],
-          "startTime": "string",
-          "endTime": "string"
-        }
-      }
-    ]
-  }
-]
-```
-
-**Error Response Body:**
-```json
-{
-  "error": "string"
-}
-```
----
-### POST /api/CourseCatalog/_getEventInfo
-
-**Description:** Retrieves detailed information for a single event, including its course name.
-
-**Requirements:**
-- The `event` with the given ID must exist.
-
-**Effects:**
-- Returns an array containing the information for the specified event. The array will be empty if the event is not found.
-
-**Request Body:**
-```json
-{
-  "event": "ID"
-}
-```
-
-**Success Response Body (Query):**
-```json
-[
+    "event": "string"
+  },
   {
-    "event": "ID",
-    "name": "string",
-    "type": "string",
-    "times": {
-      "days": ["string"],
-      "startTime": "string",
-      "endTime": "string"
-    }
+    "event": "string"
   }
 ]
 ```
