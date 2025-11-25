@@ -4,7 +4,7 @@ import { authApi } from '@/api/syncs/auth';
 import { useRouter } from 'vue-router';
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<string | null>(null);
+  const user = ref<string | null>(localStorage.getItem('user'));
   const session = ref<string | null>(localStorage.getItem('session_token'));
   const error = ref<string | null>(null);
   const loading = ref(false);
@@ -61,6 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
       session.value = null;
       user.value = null;
       localStorage.removeItem('session_token');
+      localStorage.removeItem('user');
       loading.value = false;
       if (router) router.push('/auth');
     }
