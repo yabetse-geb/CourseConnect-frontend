@@ -42,7 +42,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import EventBlock from './EventBlock.vue'
-import type { CourseEvent, EventInfo } from '@/api/concepts/CourseCatalog'
+import type { EventInfo } from '@/api/concepts/CourseCatalog'
 
 interface ClassBlock {
   id: string
@@ -53,18 +53,26 @@ interface ClassBlock {
   color: 'red' | 'green' | 'pink' | 'gray' | 'blue'
 }
 
-interface TemporaryEvent {
-  event: CourseEvent
-  courseName: string
-}
-
 const props = defineProps<{
-  temporaryEvent?: TemporaryEvent | null
   scheduledEvents: EventInfo[]
 }>()
 
 const weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI']
 const hours = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+
+// Convert full day name to abbreviated format (e.g., "Monday" -> "MON")
+const convertDayName = (day: string): string => {
+  const dayMap: Record<string, string> = {
+    'Monday': 'MON',
+    'Tuesday': 'TUE',
+    'Wednesday': 'WED',
+    'Thursday': 'THU',
+    'Friday': 'FRI',
+    'Saturday': 'SAT',
+    'Sunday': 'SUN'
+  }
+  return dayMap[day] || day.toUpperCase().slice(0, 3)
+}
 
 // Convert "HH:MM" string to decimal hours
 const timeToHours = (timeStr: string): number => {
@@ -79,53 +87,43 @@ const calculateDuration = (startTime: string, endTime: string): number => {
   return timeToHours(endTime) - timeToHours(startTime)
 }
 
-// Convert temporary event to schedule blocks
-const temporaryBlocks = computed<ClassBlock[]>(() => {
-  if (!props.temporaryEvent) return []
-  
-  const { event, courseName } = props.temporaryEvent
-  const startTime = timeToHours(event.times.startTime)
-  const duration = calculateDuration(event.times.startTime, event.times.endTime)
-  
-  // Create a separate block for each day with blue color
-  return event.times.days.map((day) => ({
-    id: `temp-${event.event}-${day}`,
-    code: courseName,
-    day: day,
-    startTime: startTime,
-    duration: duration,
-    color: 'blue' as const
-  }))
-})
-
 // Convert scheduled events to schedule blocks
 const scheduledBlocks = computed<ClassBlock[]>(() => {
   if (!props.scheduledEvents || props.scheduledEvents.length === 0) return []
   
+  console.log('WeekCalendar - Converting scheduledEvents to blocks:', props.scheduledEvents)
   const blocks: ClassBlock[] = []
   props.scheduledEvents.forEach((eventInfo) => {
     const startTime = timeToHours(eventInfo.times.startTime)
     const duration = calculateDuration(eventInfo.times.startTime, eventInfo.times.endTime)
     
+    console.log(`Processing event ${eventInfo.event}: ${eventInfo.name} (${eventInfo.type})`)
+    
     // Create a separate block for each day with green color
     eventInfo.times.days.forEach((day) => {
-      blocks.push({
+      const block = {
         id: `scheduled-${eventInfo.event}-${day}`,
         code: eventInfo.name,
-        day: day,
+        day: convertDayName(day),
         startTime: startTime,
         duration: duration,
         color: 'green' as const
-      })
+      }
+      console.log('Created block:', block)
+      blocks.push(block)
     })
   })
   
+  console.log('WeekCalendar - Total blocks created:', blocks)
   return blocks
 })
 
-// All blocks (temporary events + scheduled events)
+// All blocks (scheduled events only)
 const allBlocks = computed<ClassBlock[]>(() => {
-  return [...scheduledBlocks.value, ...temporaryBlocks.value]
+  const blocks = [...scheduledBlocks.value]
+  console.log('WeekCalendar - All event blocks:', blocks)
+  console.log('WeekCalendar - Scheduled blocks:', scheduledBlocks.value)
+  return blocks
 })
 
 const getBlocksForDay = (day: string) => {

@@ -24,6 +24,7 @@ const scheduledEventIds = computed(() => {
 // Fetch schedule from backend
 const fetchSchedule = async () => {
   try {
+    console.log('Fetching schedule...')
     const user = authStore.user
     if (!user) {
       console.warn('No user found, cannot fetch schedule')
@@ -33,9 +34,11 @@ const fetchSchedule = async () => {
 
     // Get event information from user's schedule (pass session as user parameter)
     const eventInfo = await getUserSchedule(user)
+    console.log('Fetched schedule from API:', eventInfo)
     // eventInfo is already an array of EventInfo, so use it directly
     const events: EventInfo[] = eventInfo
     scheduledEvents.value = events
+    console.log('Updated scheduledEvents.value:', scheduledEvents.value)
   } catch (err) {
     console.error('Failed to fetch schedule:', err)
     scheduledEvents.value = []
@@ -75,9 +78,13 @@ const handleAddEvent = async (eventId: string) => {
 
 const handleRemoveEvent = async (eventId: string) => {
   try {
+    console.log('Removing event:', eventId)
+    console.log('Current scheduled events before removal:', scheduledEvents.value)
     await unscheduleEvent(eventId)
+    console.log('unscheduleEvent API call successful')
     // Refresh schedule after removing
     await refreshSchedule()
+    console.log('Schedule refreshed, new scheduled events:', scheduledEvents.value)
   } catch (err) {
     console.error('Failed to remove event from schedule:', err)
     // Still refresh to get current state
