@@ -16,7 +16,6 @@ const router = createRouter({
       name: "scheduling",
       component: () => import("../views/SchedulingView.vue"),
     },
-   
     {
       path: "/auth",
       name: "auth",

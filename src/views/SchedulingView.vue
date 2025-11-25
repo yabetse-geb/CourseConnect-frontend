@@ -24,23 +24,17 @@ const scheduledEventIds = computed(() => {
 // Fetch schedule from backend
 const fetchSchedule = async () => {
   try {
-    const session = authStore.session
-    if (!session) {
-      console.warn('No session found, cannot fetch schedule')
+    const user = authStore.user
+    if (!user) {
+      console.warn('No user found, cannot fetch schedule')
       scheduledEvents.value = []
       return
     }
 
-    // Get event IDs from user's schedule (pass session as user parameter)
-    const eventIdsResponse = await getUserSchedule(session)
-    const eventIds = eventIdsResponse.map(item => item.event)
-
-    // Fetch full event details for each event ID
-    const eventDetailsPromises = eventIds.map(eventId => getEventInfo(eventId))
-    const eventDetailsArrays = await Promise.all(eventDetailsPromises)
-    
-    // Flatten the arrays (getEventInfo returns EventInfo[])
-    const events: EventInfo[] = eventDetailsArrays.flat()
+    // Get event information from user's schedule (pass session as user parameter)
+    const eventInfo = await getUserSchedule(user)
+    // eventInfo is already an array of EventInfo, so use it directly
+    const events: EventInfo[] = eventInfo
     scheduledEvents.value = events
   } catch (err) {
     console.error('Failed to fetch schedule:', err)

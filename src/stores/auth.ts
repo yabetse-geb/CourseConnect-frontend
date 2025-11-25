@@ -17,7 +17,9 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authApi.login(username, password);
       if (response.session) {
         session.value = response.session;
+        user.value = response.user;
         localStorage.setItem('session_token', response.session);
+        localStorage.setItem('user', response.user);
         // Redirect to home or dashboard after login
         if (router) router.push('/');
       }

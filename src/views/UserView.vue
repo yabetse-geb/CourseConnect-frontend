@@ -1,38 +1,116 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { getUsername } from "@/api/syncs/auth";
+import { apiCall } from "@/api/api";
 import FriendsList from "@/components/FriendsList.vue";
 import BlockedUsersList from "@/components/BlockedUsersList.vue";
 import GroupsList from "@/components/GroupsList.vue";
 
 const authStore = useAuthStore();
 
-const isEditing = ref(false);
-const userProfile = ref({
-  name: "",
-  kerb: "",
-  course: "",
-  gradDate: "",
-  username: "",
-  password: "",
-});
+const loadingUsername = ref(false);
+const username = ref("");
 
-const currentUserId = ref<string | null>(authStore.user);
+const currentUserId = ref<string | null>(authStore.user || null);
 
-onMounted(() => {
-  // TODO: Fetch user profile data from API
-  // For now, using placeholder data
-  if (currentUserId.value) {
-    // Load user profile
+async function getUserFromSession() {
+  if (!authStore.session) {
+    console.log("No session available");
+    return null;
   }
-});
 
-function handleEdit() {
-  isEditing.value = !isEditing.value;
-  if (!isEditing.value) {
-    // TODO: Save changes to API
+  try {
+    console.log("Getting user from session:", authStore.session);
+    const response = await apiCall(
+      "/Sessioning/_getUser",
+      { session: authStore.session },
+      "Get User from Session"
+    );
+    console.log("Sessioning/_getUser response:", response);
+
+    // Based on GetUserFromSessionResponseSuccess sync: [Requesting.respond, { request, user }]
+    // The response should be { user: string } (request ID is internal)
+    let userId: string | null = null;
+    if (response && response.user) {
+      userId = response.user as string;
+    }
+
+    console.log("Extracted user ID from session:", userId);
+    return userId;
+  } catch (e: any) {
+    console.error("Error getting user from session:", e);
+    return null;
   }
 }
+
+async function loadUsername() {
+  loadingUsername.value = true;
+  console.log(
+    "loadUsername called - currentUserId:",
+    currentUserId.value,
+    "session:",
+    authStore.session
+  );
+  let userId = currentUserId.value;
+
+  // If we don't have a user ID, try to get it from the session
+  if (!userId && authStore.session) {
+    console.log("No user ID found, fetching from session...");
+    userId = await getUserFromSession();
+    if (userId) {
+      console.log("Setting user ID:", userId);
+      currentUserId.value = userId;
+      authStore.user = userId;
+    } else {
+      console.log("Failed to get user ID from session");
+      loadingUsername.value = false;
+      return;
+    }
+  }
+
+  if (!userId) {
+    console.log("No user ID available, cannot load username");
+    loadingUsername.value = false;
+    return;
+  }
+
+  try {
+    console.log("Loading username for user ID:", userId);
+    const fetchedUsername = await getUsername(userId);
+    console.log("Got username:", fetchedUsername);
+    if (fetchedUsername) {
+      username.value = fetchedUsername;
+      console.log("Username set to:", username.value);
+    } else {
+      console.log("Username is null or empty");
+    }
+  } catch (e: any) {
+    console.error("Error loading username:", e);
+  } finally {
+    loadingUsername.value = false;
+  }
+}
+
+// Watch for session changes
+watch(
+  () => authStore.session,
+  async (newSession) => {
+    if (newSession && !currentUserId.value) {
+      await loadUsername();
+    }
+  }
+);
+
+onMounted(async () => {
+  // Ensure session is loaded from localStorage if not in store
+  if (!authStore.session && localStorage.getItem("session_token")) {
+    authStore.session = localStorage.getItem("session_token");
+  }
+
+  // Load username from API
+  await loadUsername();
+});
 </script>
 
 <template>
@@ -54,61 +132,12 @@ function handleEdit() {
       <div class="profile-picture-area"></div>
 
       <div class="profile-details">
-        <div class="detail-column">
-          <div class="detail-item">
-            <label>NAME</label>
-            <input v-if="isEditing" v-model="userProfile.name" type="text" />
-            <span v-else>{{ userProfile.name || "Not set" }}</span>
-          </div>
-          <div class="detail-item">
-            <label>KERB</label>
-            <input v-if="isEditing" v-model="userProfile.kerb" type="text" />
-            <span v-else>{{ userProfile.kerb || "Not set" }}</span>
-          </div>
-        </div>
-
-        <div class="detail-column">
-          <div class="detail-item">
-            <label>COURSE</label>
-            <input v-if="isEditing" v-model="userProfile.course" type="text" />
-            <span v-else>{{ userProfile.course || "Not set" }}</span>
-          </div>
-          <div class="detail-item">
-            <label>GRAD DATE</label>
-            <input
-              v-if="isEditing"
-              v-model="userProfile.gradDate"
-              type="text"
-            />
-            <span v-else>{{ userProfile.gradDate || "Not set" }}</span>
-          </div>
-        </div>
-
-        <div class="detail-column">
-          <div class="detail-item">
-            <label>Username</label>
-            <input
-              v-if="isEditing"
-              v-model="userProfile.username"
-              type="text"
-            />
-            <span v-else>{{ userProfile.username || "Not set" }}</span>
-          </div>
-          <div class="detail-item">
-            <label>Password</label>
-            <input
-              v-if="isEditing"
-              v-model="userProfile.password"
-              type="password"
-            />
-            <span v-else>••••••••</span>
-          </div>
+        <div class="detail-item">
+          <label>Username</label>
+          <span v-if="loadingUsername">Loading...</span>
+          <span v-else>{{ username || "Not set" }}</span>
         </div>
       </div>
-
-      <button class="edit-button" @click="handleEdit">
-        {{ isEditing ? "Save" : "Edit" }}
-      </button>
     </div>
 
     <div class="lists-section">
@@ -190,9 +219,8 @@ function handleEdit() {
 
 .profile-details {
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  display: flex;
+  align-items: center;
 }
 
 .detail-column {
@@ -231,23 +259,6 @@ function handleEdit() {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.edit-button {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  padding: 8px 16px;
-  background-color: var(--color-button);
-  color: var(--color-button-text);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.edit-button:hover {
-  background-color: var(--color-button-hover);
-}
-
 .lists-section {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -256,10 +267,6 @@ function handleEdit() {
 
 @media (max-width: 1024px) {
   .lists-section {
-    grid-template-columns: 1fr;
-  }
-
-  .profile-details {
     grid-template-columns: 1fr;
   }
 }
