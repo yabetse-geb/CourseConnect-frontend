@@ -24,6 +24,17 @@
               <div class="event-content">
                 <div class="event-days">{{ formatDays(event.times.days) }}</div>
                 <div class="event-time">{{ formatTimeRange(event.times.startTime, event.times.endTime) }}</div>
+                <div v-if="loadingFriends" class="event-friends">
+                  Loading friends...
+                </div>
+                <div v-else class="event-friends">
+                  <span v-if="getFriendsForEvent(event.event).length > 0">
+                    {{ getFriendsForEvent(event.event).length }} {{ getFriendsForEvent(event.event).length === 1 ? 'friend' : 'friends' }}: {{ getFriendsForEvent(event.event).join(', ') }}
+                  </span>
+                  <span v-else class="no-friends">
+                    No friends enrolled
+                  </span>
+                </div>
               </div>
               <div class="event-actions" @click.stop>
                 <button 
@@ -54,6 +65,17 @@
               <div class="event-content">
                 <div class="event-days">{{ formatDays(event.times.days) }}</div>
                 <div class="event-time">{{ formatTimeRange(event.times.startTime, event.times.endTime) }}</div>
+                <div v-if="loadingFriends" class="event-friends">
+                  Loading friends...
+                </div>
+                <div v-else class="event-friends">
+                  <span v-if="getFriendsForEvent(event.event).length > 0">
+                    {{ getFriendsForEvent(event.event).length }} {{ getFriendsForEvent(event.event).length === 1 ? 'friend' : 'friends' }}: {{ getFriendsForEvent(event.event).join(', ') }}
+                  </span>
+                  <span v-else class="no-friends">
+                    No friends enrolled
+                  </span>
+                </div>
               </div>
               <div class="event-actions" @click.stop>
                 <button 
@@ -75,6 +97,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Course, CourseEvent } from '@/api/concepts/CourseCatalog'
+import { useFriendsInEvents } from '@/composables/useFriendsInEvents'
 
 const props = defineProps<{
   course: Course | null
@@ -102,6 +125,15 @@ const recitationEvents = computed(() => {
   )
 })
 
+// Get all event IDs from the course (lectures + recitations)
+const allEventIds = computed(() => {
+  if (!props.course) return []
+  return props.course.events.map(event => event.event)
+})
+
+// Use composable to fetch friends for events
+const { friendsByEventId, loading: loadingFriends, error: friendsError, getFriendsForEvent } = useFriendsInEvents(allEventIds)
+
 // Find which lecture/recitation is currently scheduled for this course
 const scheduledLectureId = computed(() => {
   if (!props.course || !props.scheduledEventIds) return null
@@ -126,7 +158,9 @@ const formatDays = (days: string[]): string => {
 
 const formatTimeRange = (startTime: string, endTime: string): string => {
   const format12Hour = (time: string): string => {
-    const [hours, minutes] = time.split(':').map(Number)
+    const parts = time.split(':').map(Number)
+    const hours = parts[0] ?? 0
+    const minutes = parts[1] ?? 0
     const period = hours >= 12 ? 'PM' : 'AM'
     const hour12 = hours % 12 || 12
     return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`
@@ -372,6 +406,18 @@ const handleRemoveEvent = (eventId: string) => {
 .event-time {
   font-size: 0.875rem;
   color: var(--color-text-soft);
+}
+
+.event-friends {
+  font-size: 0.75rem;
+  color: var(--color-text-soft);
+  margin-top: 0.25rem;
+  line-height: 1.3;
+}
+
+.event-friends .no-friends {
+  font-style: italic;
+  opacity: 0.7;
 }
 
 @media (max-width: 768px) {
