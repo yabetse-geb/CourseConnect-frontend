@@ -29,9 +29,14 @@
             v-for="block in getBlocksForDay(day)"
             :key="block.id"
             :code="block.code"
+            :course-name="block.courseName"
+            :event-id="block.eventId"
             :start-time="block.startTime"
             :duration="block.duration"
             :color="block.color"
+            :is-hidden="props.hiddenEventIds?.has(block.eventId)"
+            @block-clicked="(courseName) => emit('block-clicked', courseName)"
+            @hide-event="(eventId) => emit('hide-event', eventId)"
           />
         </div>
       </div>
@@ -47,6 +52,8 @@ import type { EventInfo } from '@/api/concepts/CourseCatalog'
 interface ClassBlock {
   id: string
   code: string
+  courseName: string
+  eventId: string
   day: string
   startTime: number // in hours (e.g., 9.5 for 9:30 AM)
   duration: number // in hours
@@ -55,6 +62,12 @@ interface ClassBlock {
 
 const props = defineProps<{
   scheduledEvents: EventInfo[]
+  hiddenEventIds?: Set<string>
+}>()
+
+const emit = defineEmits<{
+  (e: 'block-clicked', courseName: string): void
+  (e: 'hide-event', eventId: string): void
 }>()
 
 const weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI']
@@ -104,6 +117,8 @@ const scheduledBlocks = computed<ClassBlock[]>(() => {
       const block = {
         id: `scheduled-${eventInfo.event}-${day}`,
         code: eventInfo.name,
+        courseName: eventInfo.name,
+        eventId: eventInfo.event,
         day: convertDayName(day),
         startTime: startTime,
         duration: duration,

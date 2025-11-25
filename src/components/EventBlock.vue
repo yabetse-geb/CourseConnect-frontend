@@ -1,9 +1,17 @@
 <template>
   <div
     class="class-block"
-    :class="color"
+    :class="[color, { 'is-hidden': isHidden }]"
     :style="blockStyle"
+    @click="handleClick"
   >
+    <button 
+      class="eye-button"
+      @click.stop="handleHide"
+      title="Hide event"
+    >
+      👁️
+    </button>
     <div class="block-code">{{ code }}</div>
   </div>
 </template>
@@ -13,17 +21,26 @@ import { computed } from 'vue'
 
 interface Props {
   code: string
+  courseName: string
+  eventId: string
   startTime: number // in hours (e.g., 9.5 for 9:30 AM)
   duration: number // in hours
   color: 'red' | 'green' | 'pink' | 'gray' | 'blue'
+  isHidden?: boolean
   startHour?: number // First hour in the grid (default: 8)
   hourHeight?: number // Height of each hour slot in pixels (default: 60)
 }
 
 const props = withDefaults(defineProps<Props>(), {
   startHour: 5,
-  hourHeight: 50
+  hourHeight: 50,
+  isHidden: false
 })
+
+const emit = defineEmits<{
+  (e: 'block-clicked', courseName: string): void
+  (e: 'hide-event', eventId: string): void
+}>()
 
 const blockStyle = computed(() => {
   const top = (props.startTime - props.startHour) * props.hourHeight
@@ -34,6 +51,14 @@ const blockStyle = computed(() => {
     height: `${height}px`
   }
 })
+
+const handleClick = () => {
+  emit('block-clicked', props.courseName)
+}
+
+const handleHide = () => {
+  emit('hide-event', props.eventId)
+}
 </script>
 
 <style scoped>
@@ -46,7 +71,35 @@ const blockStyle = computed(() => {
   font-size: 11px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.1s;
+  transition: transform 0.1s, opacity 0.2s;
+}
+
+.class-block.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.eye-button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 10;
+}
+
+.class-block:hover .eye-button {
+  opacity: 1;
+}
+
+.eye-button:hover {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .class-block:hover {

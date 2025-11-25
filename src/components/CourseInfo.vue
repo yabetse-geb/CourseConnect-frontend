@@ -125,7 +125,14 @@ const formatDays = (days: string[]): string => {
 }
 
 const formatTimeRange = (startTime: string, endTime: string): string => {
-  return `${startTime} - ${endTime}`
+  const format12Hour = (time: string): string => {
+    const [hours, minutes] = time.split(':').map(Number)
+    const period = hours >= 12 ? 'PM' : 'AM'
+    const hour12 = hours % 12 || 12
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`
+  }
+  
+  return `${format12Hour(startTime)} - ${format12Hour(endTime)}`
 }
 
 const handleEventClick = (event: CourseEvent) => {
