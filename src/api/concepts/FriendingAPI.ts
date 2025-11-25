@@ -66,12 +66,8 @@ export async function rejectFriend(
 }
 
 /**
- * Removes an existing friendship between two users.
- * API Spec: POST /api/Friending/remove
- * Implementation: removeFriend method expects { remover, removed }
- * @param u1 - First user (from API spec)
- * @param u2 - Second user (from API spec)
- * @returns Empty object on success, throws error on failure
+ * Removes an existing friendship between two users by ID (legacy direct call).
+ * Prefer using removeFriendBySession for session-auth flows.
  */
 export async function removeFriend(
   u1: string,
@@ -82,6 +78,25 @@ export async function removeFriend(
     { remover: u1, removed: u2 },
     "removeFriend"
   )) as Record<string, never>;
+}
+
+/**
+ * Removes an existing friendship initiated by the authenticated user.
+ * Uses sync endpoint: /friending/remove
+ * Sync: RemoveFriendRequest -> RemoveFriendResponse
+ * @param session - Session token for the current user (remover)
+ * @param targetUsername - Username of the friend to remove
+ * @returns Response with request and status ("removed"), throws error on failure
+ */
+export async function removeFriendBySession(
+  session: string,
+  targetUsername: string
+): Promise<{ request: string; status: string }> {
+  return (await apiCall(
+    "/friending/remove",
+    { session, targetUsername },
+    "Remove Friend"
+  )) as { request: string; status: string };
 }
 
 /**

@@ -3,7 +3,7 @@ import { ref, onMounted, computed, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import {
   getAllFriendsBySession,
-  removeFriend,
+  removeFriendBySession,
   requestFriend,
 } from "@/api/concepts/FriendingAPI";
 import { getUsername } from "@/api/syncs/auth";
@@ -11,6 +11,7 @@ import { getUsername } from "@/api/syncs/auth";
 interface Props {
   session: string | null;
   userId?: string | null; // Optional, kept for backward compatibility
+  refreshKey?: number;
 }
 
 const props = defineProps<Props>();
@@ -160,32 +161,22 @@ async function handleAddFriend() {
   }
 }
 
-async function handleRemoveFriend(friendId: string) {
+async function handleRemoveFriend(friendUsername: string) {
   const session = props.session || authStore.session;
   if (!session) {
     error.value = "No session available";
     return;
   }
 
-  if (!confirm("Are you sure you want to remove this friend?")) return;
+  if (!confirm(`Remove ${friendUsername} from your friends?`)) return;
 
   loading.value = true;
   error.value = null;
   try {
-    // Get current user ID from session
-    const { apiCall } = await import("@/api/api");
-    const userResponse = await apiCall(
-      "/Sessioning/_getUser",
-      { session },
-      "Get User from Session"
+    console.log(
+      `FriendsList: Removing friend ${friendUsername} with session ${session}`
     );
-    const currentUserId = userResponse?.user as string;
-
-    if (!currentUserId) {
-      throw new Error("Could not get current user ID");
-    }
-
-    await removeFriend(currentUserId, friendId);
+    await removeFriendBySession(session, friendUsername);
     await loadFriends();
   } catch (e: any) {
     error.value = e.message || "Failed to remove friend";
@@ -205,6 +196,15 @@ watch(
     }
   },
   { immediate: true } // Run immediately if session is already available on mount
+);
+
+// Watch for refresh key changes to reload friends after external updates
+watch(
+  () => props.refreshKey,
+  () => {
+    console.log("FriendsList: refreshKey changed, reloading friends...");
+    loadFriends();
+  }
 );
 
 onMounted(() => {
@@ -249,7 +249,7 @@ onMounted(() => {
         <span>{{ friend.friendUsername }}</span>
         <button
           class="remove-button"
-          @click="handleRemoveFriend(friend.friendId)"
+          @click="handleRemoveFriend(friend.friendUsername)"
           title="Remove friend"
         >
           ×

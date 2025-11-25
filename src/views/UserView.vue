@@ -4,7 +4,7 @@ import { useAuthStore } from "@/stores/auth";
 import { getUsername } from "@/api/syncs/auth";
 import { apiCall } from "@/api/api";
 import FriendsList from "@/components/FriendsList.vue";
-import BlockedUsersList from "@/components/BlockedUsersList.vue";
+import BlockedListView from "@/components/BlockedListView.vue";
 import GroupsList from "@/components/GroupsList.vue";
 import FriendRequestsList from "@/components/FriendRequestsList.vue";
 
@@ -14,6 +14,11 @@ const loadingUsername = ref(false);
 const username = ref("");
 
 const currentUserId = ref<string | null>(authStore.user || null);
+const friendListRefreshKey = ref(0);
+
+function handleFriendUpdates() {
+  friendListRefreshKey.value += 1;
+}
 
 async function getUserFromSession() {
   if (!authStore.session) {
@@ -142,12 +147,18 @@ onMounted(async () => {
     </div>
 
     <div class="requests-section" v-if="authStore.session">
-      <FriendRequestsList :session="authStore.session" />
+      <FriendRequestsList
+        :session="authStore.session"
+        @friend-updated="handleFriendUpdates"
+      />
     </div>
 
     <div class="lists-section">
-      <FriendsList :session="authStore.session" />
-      <BlockedUsersList :userId="currentUserId" />
+      <FriendsList
+        :session="authStore.session"
+        :refreshKey="friendListRefreshKey"
+      />
+      <BlockedListView :session="authStore.session" />
       <GroupsList :userId="currentUserId" />
     </div>
   </div>

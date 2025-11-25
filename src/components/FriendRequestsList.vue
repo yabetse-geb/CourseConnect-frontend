@@ -13,6 +13,9 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const emit = defineEmits<{
+  (event: "friend-updated"): void;
+}>();
 const authStore = useAuthStore();
 
 interface FriendRequest {
@@ -149,6 +152,7 @@ async function handleAccept(requesterUsername: string) {
   try {
     await acceptFriend(authStore.session, requesterUsername);
     await loadRequests(); // Reload list after accepting
+    emit("friend-updated");
   } catch (e: any) {
     error.value = e.message || "Failed to accept friend request";
     console.error("Error accepting friend request:", e);
@@ -165,6 +169,7 @@ async function handleReject(requesterUsername: string) {
   try {
     await rejectFriend(authStore.session, requesterUsername);
     await loadRequests(); // Reload list after rejecting
+    emit("friend-updated");
   } catch (e: any) {
     error.value = e.message || "Failed to reject friend request";
     console.error("Error rejecting friend request:", e);
