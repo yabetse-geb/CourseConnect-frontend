@@ -122,26 +122,17 @@ onMounted(async () => {
 <template>
   <div class="user-page">
     <header class="page-header">
-      <h1>USER PAGE</h1>
-      <nav class="top-nav">
-        <div class="nav-left"></div>
-        <div class="nav-right">
-          <a href="#" class="nav-link">Link 1</a>
-          <a href="#" class="nav-link">Link 2</a>
-          <a href="#" class="nav-link">Link 3</a>
-        </div>
-        <div class="profile-icon"></div>
-      </nav>
+      <h1>Profile Page</h1>
     </header>
 
     <div class="user-profile-section">
-      <div class="profile-picture-area"></div>
-
       <div class="profile-details">
-        <div class="detail-item">
-          <label>Username</label>
-          <span v-if="loadingUsername">Loading...</span>
-          <span v-else>{{ username || "Not set" }}</span>
+        <div class="username-block">
+          <span class="username-label">Username</span>
+          <span class="username-value" v-if="loadingUsername">
+            Loading...
+          </span>
+          <span class="username-value" v-else>{{ username || "Not set" }}</span>
         </div>
       </div>
     </div>
@@ -182,97 +173,47 @@ onMounted(async () => {
   color: white;
 }
 
-.top-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.nav-left {
-  width: 200px;
-  height: 20px;
-  background-color: var(--color-border);
-}
-
-.nav-right {
-  display: flex;
-  gap: 15px;
-}
-
-.nav-link {
-  text-decoration: none;
-  color: white;
-  padding: 5px 10px;
-}
-
-.profile-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: var(--color-border);
-}
-
 .user-profile-section {
   background-color: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 30px;
   margin-bottom: 30px;
-  position: relative;
   display: flex;
-  gap: 20px;
-}
-
-.profile-picture-area {
-  width: 120px;
-  height: 120px;
-  background-color: var(--color-border);
-  border-radius: 4px;
-  flex-shrink: 0;
+  justify-content: center;
 }
 
 .profile-details {
-  flex: 1;
-  display: flex;
-  align-items: center;
+  text-align: center;
 }
 
-.detail-column {
+.username-block {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.detail-item label {
-  font-weight: bold;
-  font-size: 0.9rem;
+.username-label {
+  font-weight: 600;
+  font-size: 1.1rem;
   color: white;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
-.detail-item input,
-.detail-item span {
-  padding: 8px;
+.username-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  padding: 10px 20px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background-color: var(--color-background);
-  color: white;
-}
-
-.detail-item input {
-  width: 100%;
-  color: white;
-}
-
-.detail-item input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.01)
+  );
+  min-width: 250px;
 }
 
 .requests-section {
