@@ -91,18 +91,18 @@ export async function getUserSchedule(targetUser: string): Promise<{ event: stri
  * Returns the common event IDs between the schedules of two users.
  * API Spec: POST /api/Scheduling/_getScheduleComparison
  * @param user2 - The second user
- * @returns Array of objects containing common event IDs
+ * @returns Array of objects containing event details (event, name, type, times)
  */
 export async function getScheduleComparison(
   user2: string
-): Promise<{ event: string }[]> {
+): Promise<{ event: string, name: string; type: string; times: TimeSlot }[]> {
   const session = getSessionToken();
   const response = await apiCall(
     "/Scheduling/_getScheduleComparison",
     { session, user2 },
     "getScheduleComparison"
   );
-  return response as { event: string }[];
+  return response.results as { event: string, name: string; type: string; times: TimeSlot }[];
 }
 
 // Export all functions as a bundle
