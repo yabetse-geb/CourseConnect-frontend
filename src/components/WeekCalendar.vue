@@ -29,6 +29,7 @@
             v-for="block in getBlocksForDay(day)"
             :key="block.id"
             :code="block.code"
+            :type="block.type"
             :course-name="block.courseName"
             :event-id="block.eventId"
             :start-time="block.startTime"
@@ -52,6 +53,7 @@ import type { EventInfo } from '@/api/concepts/CourseCatalog'
 interface ClassBlock {
   id: string
   code: string
+  type: string
   courseName: string
   eventId: string
   day: string
@@ -117,6 +119,7 @@ const scheduledBlocks = computed<ClassBlock[]>(() => {
       const block = {
         id: `scheduled-${eventInfo.event}-${day}`,
         code: eventInfo.name,
+        type: eventInfo.type,
         courseName: eventInfo.name,
         eventId: eventInfo.event,
         day: convertDayName(day),
