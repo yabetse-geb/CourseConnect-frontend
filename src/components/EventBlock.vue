@@ -13,6 +13,7 @@
       👁️
     </button>
     <div class="block-code">{{ code }}</div>
+    <div class="block-type">{{ type }}</div>
   </div>
 </template>
 
@@ -21,6 +22,7 @@ import { computed } from 'vue'
 
 interface Props {
   code: string
+  type: string
   courseName: string
   eventId: string
   startTime: number // in hours (e.g., 9.5 for 9:30 AM)
@@ -110,6 +112,12 @@ const handleHide = () => {
 .block-code {
   font-weight: 600;
   color: white;
+}
+
+.block-type {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 1px;
 }
 
 /* Color classes */

@@ -119,8 +119,11 @@ async function loadFriends() {
           }
           // If object has only one property, use that value
           const keys = Object.keys(item);
-          if (keys.length === 1 && typeof item[keys[0]] === "string") {
-            return item[keys[0]];
+          if (keys.length === 1) {
+            const firstKey = keys[0];
+            if (firstKey && typeof item[firstKey] === "string") {
+              return item[firstKey];
+            }
           }
         }
         // Return null for invalid items (will be filtered out)
