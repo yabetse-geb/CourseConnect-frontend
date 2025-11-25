@@ -1,38 +1,137 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import {
-  getAllFriends,
+  getAllFriendsBySession,
   removeFriend,
   requestFriend,
 } from "@/api/concepts/FriendingAPI";
+import { getUsername } from "@/api/syncs/auth";
 
 interface Props {
-  userId: string | null;
+  session: string | null;
+  userId?: string | null; // Optional, kept for backward compatibility
 }
 
 const props = defineProps<Props>();
 const authStore = useAuthStore();
 
-const friends = ref<{ friend: string }[]>([]);
+interface Friend {
+  friendId: string;
+  friendUsername: string;
+}
+
+const friends = ref<Friend[]>([]);
 const searchQuery = ref("");
 const loading = ref(false);
 const error = ref<string | null>(null);
 
 const filteredFriends = computed(() => {
   if (!searchQuery.value) return friends.value;
+  const query = searchQuery.value.toLowerCase();
   return friends.value.filter((f) =>
-    f.friend.toLowerCase().includes(searchQuery.value.toLowerCase())
+    f.friendUsername.toLowerCase().includes(query)
   );
 });
 
 async function loadFriends() {
-  if (!props.userId) return;
+  const session = props.session || authStore.session;
+  if (!session) {
+    console.log("FriendsList: No session available");
+    return;
+  }
 
   loading.value = true;
   error.value = null;
   try {
-    friends.value = await getAllFriends(props.userId);
+    console.log("FriendsList: Loading friends with session:", session);
+    const response = await getAllFriendsBySession(session);
+    console.log("FriendsList: API response:", response);
+
+    // Extract friend IDs from response
+    // Based on GetAllFriendsResponseSuccess sync: returns { friends: string[] }
+    let friendIds: string[] = [];
+
+    if (Array.isArray(response)) {
+      // Response is directly an array
+      friendIds = response;
+    } else if (response && typeof response === "object") {
+      // Response is an object - check for friends property (from sync)
+      if ("friends" in response && Array.isArray(response.friends)) {
+        friendIds = response.friends;
+      } else if ("friend" in response && Array.isArray(response.friend)) {
+        // Fallback for old format
+        friendIds = response.friend;
+      }
+    }
+
+    // Filter and normalize: handle case where array contains objects instead of strings
+    friendIds = friendIds
+      .map((item: any) => {
+        // If it's already a string, use it
+        if (typeof item === "string" && item.length > 0) {
+          return item;
+        }
+        // If it's an object, try to extract user ID from common property names
+        if (typeof item === "object" && item !== null) {
+          // Try common property names
+          if (item.friend && typeof item.friend === "string") {
+            return item.friend;
+          }
+          if (item.friendId && typeof item.friendId === "string") {
+            return item.friendId;
+          }
+          if (item.user && typeof item.user === "string") {
+            return item.user;
+          }
+          if (item.id && typeof item.id === "string") {
+            return item.id;
+          }
+          // If object has only one property, use that value
+          const keys = Object.keys(item);
+          if (keys.length === 1 && typeof item[keys[0]] === "string") {
+            return item[keys[0]];
+          }
+        }
+        // Return null for invalid items (will be filtered out)
+        return null;
+      })
+      .filter((id): id is string => id !== null && typeof id === "string");
+
+    console.log("FriendsList: Extracted friend IDs:", friendIds);
+    console.log("FriendsList: Number of friends:", friendIds.length);
+
+    // Fetch usernames for each friend
+    const friendsWithUsernames = await Promise.all(
+      friendIds.map(async (friendId: string) => {
+        try {
+          const username = await getUsername(friendId);
+          console.log(
+            `FriendsList: Fetched username for ${friendId}:`,
+            username
+          );
+          if (!username) {
+            console.warn(`FriendsList: No username found for ${friendId}`);
+          }
+          return {
+            friendId,
+            friendUsername: username || "Unknown User",
+          };
+        } catch (e) {
+          console.error(
+            `FriendsList: Error fetching username for ${friendId}:`,
+            e
+          );
+          return {
+            friendId,
+            friendUsername: "Unknown User",
+          };
+        }
+      })
+    );
+
+    console.log("FriendsList: Final friends array:", friendsWithUsernames);
+    friends.value = friendsWithUsernames;
   } catch (e: any) {
     error.value = e.message || "Failed to load friends";
     console.error("Error loading friends:", e);
@@ -62,14 +161,31 @@ async function handleAddFriend() {
 }
 
 async function handleRemoveFriend(friendId: string) {
-  if (!props.userId) return;
+  const session = props.session || authStore.session;
+  if (!session) {
+    error.value = "No session available";
+    return;
+  }
 
   if (!confirm("Are you sure you want to remove this friend?")) return;
 
   loading.value = true;
   error.value = null;
   try {
-    await removeFriend(props.userId, friendId);
+    // Get current user ID from session
+    const { apiCall } = await import("@/api/api");
+    const userResponse = await apiCall(
+      "/Sessioning/_getUser",
+      { session },
+      "Get User from Session"
+    );
+    const currentUserId = userResponse?.user as string;
+
+    if (!currentUserId) {
+      throw new Error("Could not get current user ID");
+    }
+
+    await removeFriend(currentUserId, friendId);
     await loadFriends();
   } catch (e: any) {
     error.value = e.message || "Failed to remove friend";
@@ -79,8 +195,29 @@ async function handleRemoveFriend(friendId: string) {
   }
 }
 
+// Watch for session changes
+watch(
+  () => props.session,
+  (newSession) => {
+    if (newSession) {
+      console.log("FriendsList: Session prop changed, loading friends...");
+      loadFriends();
+    }
+  },
+  { immediate: true } // Run immediately if session is already available on mount
+);
+
 onMounted(() => {
-  loadFriends();
+  // If session is already available on mount, load friends. Otherwise, the watcher will handle it.
+  const session = props.session || authStore.session;
+  if (session) {
+    console.log("FriendsList: Session available on mount, loading friends...");
+    loadFriends();
+  } else {
+    console.log(
+      "FriendsList: No session on mount, waiting for session via watcher..."
+    );
+  }
 });
 </script>
 
@@ -106,13 +243,13 @@ onMounted(() => {
     <ul v-else class="friends-list">
       <li
         v-for="friend in filteredFriends"
-        :key="friend.friend"
+        :key="friend.friendId"
         class="friend-item"
       >
-        <span>{{ friend.friend }}</span>
+        <span>{{ friend.friendUsername }}</span>
         <button
           class="remove-button"
-          @click="handleRemoveFriend(friend.friend)"
+          @click="handleRemoveFriend(friend.friendId)"
           title="Remove friend"
         >
           ×

@@ -177,3 +177,41 @@ export async function getAllOutgoingFriendRequestsBySession(
   );
   return response as { requestees: string[] };
 }
+
+/**
+ * Retrieves all friends for the authenticated user.
+ * Uses sync endpoint: /Friending/_getAllFriends
+ * Sync: GetAllFriendsResponseSuccess -> GetAllFriendsResponseError
+ * @param session - The session token of the authenticated user
+ * @returns Response with friends array (user IDs who are friends with the authenticated user)
+ */
+export async function getAllFriendsBySession(
+  session: string
+): Promise<{ friends: string[] }> {
+  const response = await apiCall(
+    "/Friending/_getAllFriends",
+    { session },
+    "Get All Friends"
+  );
+  return response as { friends: string[] };
+}
+
+/**
+ * Checks if the authenticated user is friends with a target user (by username).
+ * Uses sync endpoint: /Friending/_areTheyFriends
+ * Sync: AreTheyFriendsResponseSuccess -> AreTheyFriendsResponseError
+ * @param session - The session token of the authenticated user
+ * @param targetUsername - The username of the target user to check
+ * @returns Response with areFriends boolean
+ */
+export async function areTheyFriendsBySession(
+  session: string,
+  targetUsername: string
+): Promise<{ areFriends: boolean }> {
+  const response = await apiCall(
+    "/Friending/_areTheyFriends",
+    { session, targetUsername },
+    "Are They Friends"
+  );
+  return response as { areFriends: boolean };
+}

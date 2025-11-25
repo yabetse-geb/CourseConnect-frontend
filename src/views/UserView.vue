@@ -146,7 +146,7 @@ onMounted(async () => {
     </div>
 
     <div class="lists-section">
-      <FriendsList :userId="currentUserId" />
+      <FriendsList :session="authStore.session" />
       <BlockedUsersList :userId="currentUserId" />
       <GroupsList :userId="currentUserId" />
     </div>
