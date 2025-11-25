@@ -25,7 +25,7 @@
           ></div>
 
           <!-- Class blocks -->
-          <ScheduleBlock
+          <EventBlock
             v-for="block in getBlocksForDay(day)"
             :key="block.id"
             :code="block.code"
@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import ScheduleBlock from './ScheduleBlock.vue'
+import EventBlock from './EventBlock.vue'
 import type { CourseEvent, EventInfo } from '@/api/concepts/CourseCatalog'
 
 interface ClassBlock {

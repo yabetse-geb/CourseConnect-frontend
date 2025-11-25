@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import Schedule from '../components/Schedule.vue'
+import WeekCalendar from '../components/WeekCalendar.vue'
 import CourseSearch from '../components/CourseSearch.vue'
 import CourseInfo from '../components/CourseInfo.vue'
 import type { Course, CourseEvent, EventInfo } from '@/api/concepts/CourseCatalog'
@@ -95,7 +95,7 @@ onMounted(() => {
 <template>
   <div class="scheduling-view">
     <div class="schedule-row">
-      <Schedule 
+      <WeekCalendar 
         :temporary-event="temporaryEvent"
         :scheduled-events="scheduledEvents"
       />
