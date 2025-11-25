@@ -123,23 +123,21 @@ export async function getAllFriends(
 }
 
 /**
- * Retrieves all pending friend requests sent to a given user.
- * API Spec: POST /api/Friending/_getIncomingRequests
- * Implementation: _getAllOutgoingFriendRequests method (user is requestee)
- * Note: The API spec uses "incoming" to mean requests sent TO the user.
- * The implementation method name is reversed - it uses _getAllOutgoingFriendRequests for this.
- * @param user - The user whose incoming friend requests to retrieve
- * @returns Array of objects containing requester IDs (users who sent requests to the specified user)
+ * Retrieves all pending friend requests sent to the authenticated user.
+ * Uses sync endpoint: /Friending/_getAllIncomingFriendRequests
+ * Sync: GetAllIncomingFriendRequestsResponseSuccess -> GetAllIncomingFriendRequestsResponseError
+ * @param session - The session token of the authenticated user
+ * @returns Response with requesters array (user IDs who sent requests to the authenticated user)
  */
-export async function getAllIncomingFriendRequests(
-  user: string
-): Promise<{ requester: string }[]> {
+export async function getAllIncomingFriendRequestsBySession(
+  session: string
+): Promise<{ requesters: string[] }> {
   const response = await apiCall(
     "/Friending/_getAllIncomingFriendRequests",
-    { user },
-    "getAllIncomingFriendRequests"
+    { session },
+    "Get All Incoming Friend Requests"
   );
-  return response as { requester: string }[];
+  return response as { requesters: string[] };
 }
 
 /**
@@ -160,4 +158,22 @@ export async function getAllOutgoingFriendRequests(
     "getAllOutgoingFriendRequests"
   );
   return response as { requestee: string }[];
+}
+
+/**
+ * Retrieves all pending friend requests sent by the authenticated user.
+ * Uses sync endpoint: /Friending/_getAllOutgoingFriendRequests
+ * Sync: GetAllOutgoingFriendRequestsResponseSuccess -> GetAllOutgoingFriendRequestsResponseError
+ * @param session - The session token of the authenticated user
+ * @returns Response with requestees array (user IDs who received requests from the authenticated user)
+ */
+export async function getAllOutgoingFriendRequestsBySession(
+  session: string
+): Promise<{ requestees: string[] }> {
+  const response = await apiCall(
+    "/Friending/_getAllOutgoingFriendRequests",
+    { session },
+    "Get All Outgoing Friend Requests"
+  );
+  return response as { requestees: string[] };
 }

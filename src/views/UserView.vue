@@ -6,6 +6,7 @@ import { apiCall } from "@/api/api";
 import FriendsList from "@/components/FriendsList.vue";
 import BlockedUsersList from "@/components/BlockedUsersList.vue";
 import GroupsList from "@/components/GroupsList.vue";
+import FriendRequestsList from "@/components/FriendRequestsList.vue";
 
 const authStore = useAuthStore();
 
@@ -140,6 +141,10 @@ onMounted(async () => {
       </div>
     </div>
 
+    <div class="requests-section" v-if="authStore.session">
+      <FriendRequestsList :session="authStore.session" />
+    </div>
+
     <div class="lists-section">
       <FriendsList :userId="currentUserId" />
       <BlockedUsersList :userId="currentUserId" />
@@ -257,6 +262,10 @@ onMounted(async () => {
 
 .detail-item input::placeholder {
   color: rgba(255, 255, 255, 0.6);
+}
+
+.requests-section {
+  margin-bottom: 30px;
 }
 
 .lists-section {
