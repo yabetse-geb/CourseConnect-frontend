@@ -87,3 +87,77 @@ export async function getUsername(userId: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Get all users in the system
+ * Uses sync endpoint: /UserAuthentication/_getAllUsers
+ * Based on GetAllUsersResponseSuccess sync: [Requesting.respond, { request, users }]
+ * @param session - The session token of the authenticated user
+ * @returns Array of user IDs, or empty array on error
+ */
+export async function getAllUsers(session: string): Promise<string[]> {
+  try {
+    const response = await apiCall(
+      "/UserAuthentication/_getAllUsers",
+      { session },
+      "Get All Users"
+    );
+    console.log("getAllUsers raw response:", response);
+    console.log("getAllUsers response type:", typeof response);
+    console.log("getAllUsers is array:", Array.isArray(response));
+    if (response && typeof response === "object") {
+      console.log("getAllUsers response keys:", Object.keys(response));
+      console.log("getAllUsers has 'users' key:", "users" in response);
+      if ("users" in response) {
+        console.log("getAllUsers response.users:", response.users);
+        console.log(
+          "getAllUsers response.users is array:",
+          Array.isArray(response.users)
+        );
+      }
+    }
+
+    // Based on GetAllUsersResponseSuccess sync: returns { users: [{ user: string }, ...] }
+    if (response && typeof response === "object") {
+      if ("users" in response && Array.isArray(response.users)) {
+        // Extract user IDs from objects like { user: "user-id" }
+        const userIds = response.users
+          .map((item: any) => {
+            if (typeof item === "object" && item !== null && "user" in item) {
+              return item.user;
+            }
+            // Fallback: if item is already a string
+            if (typeof item === "string") {
+              return item;
+            }
+            return null;
+          })
+          .filter(
+            (id): id is string => typeof id === "string" && id.length > 0
+          );
+        console.log(
+          `getAllUsers: Found ${userIds.length} users from response.users`
+        );
+        return userIds;
+      }
+    }
+
+    // Fallback for array format
+    if (Array.isArray(response)) {
+      const userIds = response.filter(
+        (id): id is string => typeof id === "string" && id.length > 0
+      );
+      console.log(`getAllUsers: Found ${userIds.length} users (array format)`);
+      return userIds;
+    }
+
+    console.warn(
+      "getAllUsers: No users found in response, response:",
+      response
+    );
+    return [];
+  } catch (e: any) {
+    console.error("Error getting all users:", e);
+    return [];
+  }
+}

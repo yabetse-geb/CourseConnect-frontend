@@ -6,7 +6,7 @@ import {
   removeFriendBySession,
   requestFriend,
 } from "@/api/concepts/FriendingAPI";
-import { getUsername } from "@/api/syncs/auth";
+import { getUsername, getAllUsers } from "@/api/syncs/auth";
 
 interface Props {
   session: string | null;
@@ -27,12 +27,41 @@ const searchQuery = ref("");
 const loading = ref(false);
 const error = ref<string | null>(null);
 
+// Autocomplete state - following CourseSearch.vue pattern
+const allUsersWithUsernames = ref<{ userId: string; username: string }[]>([]);
+const loadingSuggestions = ref(false);
+const showSuggestions = ref(false);
+
 const filteredFriends = computed(() => {
   if (!searchQuery.value) return friends.value;
   const query = searchQuery.value.toLowerCase();
   return friends.value.filter((f) =>
     f.friendUsername.toLowerCase().includes(query)
   );
+});
+
+// Computed property for autocomplete suggestions - following CourseSearch.vue pattern
+const filteredSuggestions = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return [];
+  }
+
+  const query = searchQuery.value.toLowerCase().trim();
+  const filtered = allUsersWithUsernames.value
+    .filter((user) => {
+      const username = user.username.toLowerCase();
+      return username.includes(query) && username !== "unknown user";
+    })
+    .map((user) => user.username)
+    .slice(0, 10); // Limit to 10 suggestions
+
+  console.log(`FriendsList: Filtered suggestions for "${query}":`, filtered);
+  console.log(
+    `FriendsList: Total users available:`,
+    allUsersWithUsernames.value.length
+  );
+
+  return filtered;
 });
 
 async function loadFriends() {
@@ -141,12 +170,160 @@ async function loadFriends() {
   }
 }
 
+// Load all users for autocomplete - following CourseSearch.vue pattern
+async function loadAllUsers() {
+  const session = props.session || authStore.session;
+  console.log(
+    "FriendsList: loadAllUsers called - session:",
+    !!session,
+    "already loaded:",
+    allUsersWithUsernames.value.length > 0
+  );
+
+  if (!session) {
+    console.warn("FriendsList: loadAllUsers - No session available!");
+    return;
+  }
+
+  if (allUsersWithUsernames.value.length > 0) {
+    console.log("FriendsList: loadAllUsers - Users already loaded, skipping");
+    return;
+  }
+
+  loadingSuggestions.value = true;
+  error.value = null;
+
+  try {
+    console.log("FriendsList: Loading all users with session:", session);
+    const userIds = await getAllUsers(session);
+    console.log(
+      "FriendsList: Got user IDs:",
+      userIds,
+      "count:",
+      userIds.length
+    );
+
+    if (userIds.length === 0) {
+      console.warn("FriendsList: getAllUsers returned empty array!");
+    }
+
+    // Fetch usernames for all users
+    const usersWithUsernames = await Promise.all(
+      userIds.map(async (userId: string) => {
+        try {
+          const username = await getUsername(userId);
+          console.log(`FriendsList: Fetched username for ${userId}:`, username);
+          if (!username) {
+            return null;
+          }
+          return {
+            userId,
+            username,
+          };
+        } catch (e) {
+          console.error(`Error fetching username for ${userId}:`, e);
+          return null;
+        }
+      })
+    );
+
+    // Filter out null entries (users without usernames)
+    allUsersWithUsernames.value = usersWithUsernames.filter(
+      (user): user is { userId: string; username: string } => user !== null
+    );
+
+    console.log(
+      "FriendsList: Loaded users with usernames:",
+      allUsersWithUsernames.value
+    );
+    console.log(
+      "FriendsList: Usernames:",
+      allUsersWithUsernames.value.map((u) => u.username)
+    );
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "Failed to load users";
+    allUsersWithUsernames.value = [];
+    console.error("FriendsList: Error loading users:", err);
+  } finally {
+    loadingSuggestions.value = false;
+  }
+}
+
+// Handle search input - following CourseSearch.vue pattern
+async function handleSearch() {
+  // Ensure users are loaded if not already
+  if (allUsersWithUsernames.value.length === 0) {
+    const session = props.session || authStore.session;
+    console.log(
+      "FriendsList: handleSearch - session available:",
+      !!session,
+      "session:",
+      session
+    );
+    if (session) {
+      console.log("FriendsList: handleSearch - calling loadAllUsers()");
+      await loadAllUsers();
+      console.log(
+        "FriendsList: handleSearch - loadAllUsers completed, users loaded:",
+        allUsersWithUsernames.value.length
+      );
+    } else {
+      console.warn("FriendsList: handleSearch - No session available!");
+    }
+  }
+
+  // Show suggestions if there's a query and results
+  showSuggestions.value =
+    searchQuery.value.trim().length > 0 && filteredSuggestions.value.length > 0;
+}
+
+// Watch search query to automatically show/hide suggestions
+watch(
+  () => searchQuery.value,
+  () => {
+    const query = searchQuery.value.trim();
+    if (query.length > 0) {
+      const hasSuggestions = filteredSuggestions.value.length > 0;
+      showSuggestions.value = hasSuggestions;
+      console.log(
+        `FriendsList: Query "${query}" - showSuggestions:`,
+        showSuggestions.value,
+        "filteredSuggestions.length:",
+        filteredSuggestions.value.length
+      );
+    } else {
+      showSuggestions.value = false;
+    }
+  }
+);
+
+function selectSuggestion(username: string) {
+  searchQuery.value = username;
+  showSuggestions.value = false;
+  // Don't auto-add, let user click Add button or press Enter
+}
+
+function handleInputFocus() {
+  // Show suggestions if we have a query and results
+  if (searchQuery.value && searchQuery.value.trim().length > 0) {
+    showSuggestions.value = filteredSuggestions.value.length > 0;
+  }
+}
+
+function handleInputBlur() {
+  // Delay hiding suggestions to allow clicks on suggestions
+  setTimeout(() => {
+    showSuggestions.value = false;
+  }, 200);
+}
+
 async function handleAddFriend() {
   if (!authStore.session || !searchQuery.value.trim()) return;
 
   const usernameToAdd = searchQuery.value.trim();
   loading.value = true;
   error.value = null;
+  showSuggestions.value = false;
 
   try {
     await requestFriend(authStore.session, usernameToAdd);
@@ -191,8 +368,8 @@ watch(
   () => props.session,
   (newSession) => {
     if (newSession) {
-      console.log("FriendsList: Session prop changed, loading friends...");
       loadFriends();
+      loadAllUsers(); // Load all users for autocomplete when session becomes available
     }
   },
   { immediate: true } // Run immediately if session is already available on mount
@@ -208,15 +385,11 @@ watch(
 );
 
 onMounted(() => {
-  // If session is already available on mount, load friends. Otherwise, the watcher will handle it.
+  // If session is already available on mount, load friends and users. Otherwise, the watcher will handle it.
   const session = props.session || authStore.session;
   if (session) {
-    console.log("FriendsList: Session available on mount, loading friends...");
     loadFriends();
-  } else {
-    console.log(
-      "FriendsList: No session on mount, waiting for session via watcher..."
-    );
+    loadAllUsers(); // Load all users for autocomplete - following CourseSearch.vue pattern
   }
 });
 </script>
@@ -226,13 +399,32 @@ onMounted(() => {
     <h2>FRIENDS</h2>
 
     <div class="search-section">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Search:"
-        class="search-input"
-        @keyup.enter="handleAddFriend"
-      />
+      <div class="search-input-wrapper">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search:"
+          class="search-input"
+          @input="handleSearch"
+          @keyup.enter="handleAddFriend"
+          @focus="handleInputFocus"
+          @blur="handleInputBlur"
+        />
+        <ul
+          v-if="showSuggestions && filteredSuggestions.length > 0"
+          class="suggestions-list"
+          style="display: block"
+        >
+          <li
+            v-for="(suggestion, index) in filteredSuggestions"
+            :key="index"
+            class="suggestion-item"
+            @mousedown.prevent="selectSuggestion(suggestion)"
+          >
+            {{ suggestion }}
+          </li>
+        </ul>
+      </div>
       <button class="add-button" @click="handleAddFriend">Add</button>
     </div>
 
@@ -283,11 +475,17 @@ onMounted(() => {
 .search-section {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
+  position: relative;
+}
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
 }
 
 .search-input {
-  flex: 1;
+  width: 100%;
   padding: 8px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -297,6 +495,39 @@ onMounted(() => {
 
 .search-input::placeholder {
   color: rgba(255, 255, 255, 0.6);
+}
+
+.suggestions-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  padding: 0;
+  list-style: none;
+  background-color: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.suggestion-item {
+  padding: 10px;
+  cursor: pointer;
+  color: white;
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: var(--color-background-mute);
 }
 
 .add-button {

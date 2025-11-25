@@ -6,7 +6,7 @@ import {
   blockUserBySession,
   unblockUserBySession,
 } from "@/api/concepts/BlockingAPI";
-import { getUsername } from "@/api/syncs/auth";
+import { getUsername, getAllUsers } from "@/api/syncs/auth";
 
 interface Props {
   session: string | null;
@@ -26,12 +26,33 @@ const searchQuery = ref("");
 const loading = ref(false);
 const error = ref<string | null>(null);
 
+// Autocomplete state - following CourseSearch.vue pattern
+const allUsersWithUsernames = ref<{ userId: string; username: string }[]>([]);
+const loadingSuggestions = ref(false);
+const showSuggestions = ref(false);
+
 const filteredBlockedUsers = computed(() => {
   if (!searchQuery.value) return blockedUsers.value;
   const query = searchQuery.value.toLowerCase();
   return blockedUsers.value.filter((u) =>
     u.username.toLowerCase().includes(query)
   );
+});
+
+// Computed property for autocomplete suggestions - following CourseSearch.vue pattern
+const filteredSuggestions = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return [];
+  }
+
+  const query = searchQuery.value.toLowerCase().trim();
+  return allUsersWithUsernames.value
+    .filter((user) => {
+      const username = user.username.toLowerCase();
+      return username.includes(query) && username !== "unknown user";
+    })
+    .map((user) => user.username)
+    .slice(0, 10); // Limit to 10 suggestions
 });
 
 async function loadBlockedUsers() {
@@ -113,6 +134,96 @@ async function loadBlockedUsers() {
   }
 }
 
+// Load all users for autocomplete - following CourseSearch.vue pattern
+async function loadAllUsers() {
+  const session = props.session || authStore.session;
+  if (!session || allUsersWithUsernames.value.length > 0) {
+    return;
+  }
+
+  loadingSuggestions.value = true;
+  error.value = null;
+
+  try {
+    const userIds = await getAllUsers(session);
+
+    // Fetch usernames for all users
+    const usersWithUsernames = await Promise.all(
+      userIds.map(async (userId: string) => {
+        try {
+          const username = await getUsername(userId);
+          if (!username) {
+            return null;
+          }
+          return {
+            userId,
+            username,
+          };
+        } catch (e) {
+          console.error(`Error fetching username for ${userId}:`, e);
+          return null;
+        }
+      })
+    );
+
+    // Filter out null entries (users without usernames)
+    allUsersWithUsernames.value = usersWithUsernames.filter(
+      (user): user is { userId: string; username: string } => user !== null
+    );
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "Failed to load users";
+    allUsersWithUsernames.value = [];
+  } finally {
+    loadingSuggestions.value = false;
+  }
+}
+
+// Handle search input - following CourseSearch.vue pattern
+async function handleSearch() {
+  // Ensure users are loaded if not already
+  if (allUsersWithUsernames.value.length === 0) {
+    const session = props.session || authStore.session;
+    if (session) {
+      await loadAllUsers();
+    }
+  }
+
+  // Show suggestions if there's a query and results
+  showSuggestions.value =
+    searchQuery.value.trim().length > 0 && filteredSuggestions.value.length > 0;
+}
+
+// Watch search query to automatically show/hide suggestions
+watch(
+  () => searchQuery.value,
+  () => {
+    const query = searchQuery.value.trim();
+    if (query.length > 0) {
+      const hasSuggestions = filteredSuggestions.value.length > 0;
+      showSuggestions.value = hasSuggestions;
+    } else {
+      showSuggestions.value = false;
+    }
+  }
+);
+
+function selectSuggestion(username: string) {
+  searchQuery.value = username;
+  showSuggestions.value = false;
+}
+
+function handleInputFocus() {
+  if (searchQuery.value && searchQuery.value.trim().length > 0) {
+    showSuggestions.value = filteredSuggestions.value.length > 0;
+  }
+}
+
+function handleInputBlur() {
+  setTimeout(() => {
+    showSuggestions.value = false;
+  }, 200);
+}
+
 async function handleBlock() {
   const session = props.session || authStore.session;
   if (!session || !searchQuery.value.trim()) {
@@ -122,6 +233,7 @@ async function handleBlock() {
   const targetUsername = searchQuery.value.trim();
   loading.value = true;
   error.value = null;
+  showSuggestions.value = false;
   try {
     console.log(`BlockedListView: Blocking user ${targetUsername}`);
     await blockUserBySession(session, targetUsername);
@@ -166,6 +278,7 @@ watch(
     if (newSession) {
       console.log("BlockedListView: Session changed, reloading blocked users");
       loadBlockedUsers();
+      loadAllUsers(); // Load all users for autocomplete when session becomes available
     }
   },
   { immediate: true }
@@ -183,6 +296,7 @@ onMounted(() => {
   const session = props.session || authStore.session;
   if (session) {
     loadBlockedUsers();
+    loadAllUsers(); // Load all users for autocomplete - following CourseSearch.vue pattern
   } else {
     console.log("BlockedListView: Waiting for session to load...");
   }
@@ -194,13 +308,31 @@ onMounted(() => {
     <h2>BLOCKED</h2>
 
     <div class="search-section">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Username to block"
-        class="search-input"
-        @keyup.enter="handleBlock"
-      />
+      <div class="search-input-wrapper">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Username to block"
+          class="search-input"
+          @input="handleSearch"
+          @keyup.enter="handleBlock"
+          @focus="handleInputFocus"
+          @blur="handleInputBlur"
+        />
+        <ul
+          v-if="showSuggestions && filteredSuggestions.length > 0"
+          class="suggestions-list"
+        >
+          <li
+            v-for="(suggestion, index) in filteredSuggestions"
+            :key="index"
+            class="suggestion-item"
+            @mousedown.prevent="selectSuggestion(suggestion)"
+          >
+            {{ suggestion }}
+          </li>
+        </ul>
+      </div>
       <button class="block-button" @click="handleBlock" :disabled="loading">
         Block
       </button>
@@ -255,11 +387,17 @@ onMounted(() => {
 .search-section {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
+  position: relative;
+}
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
 }
 
 .search-input {
-  flex: 1;
+  width: 100%;
   padding: 8px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -269,6 +407,39 @@ onMounted(() => {
 
 .search-input::placeholder {
   color: rgba(255, 255, 255, 0.6);
+}
+
+.suggestions-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  padding: 0;
+  list-style: none;
+  background-color: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.suggestion-item {
+  padding: 10px;
+  cursor: pointer;
+  color: white;
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: var(--color-background-mute);
 }
 
 .block-button {
