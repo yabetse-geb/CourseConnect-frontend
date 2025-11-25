@@ -34,7 +34,7 @@
 
       <ul v-else class="courses-list">
         <li
-          v-for="course in filteredCourses"
+          v-for="course in visibleCourses"
           :key="course.course"
           class="course-item"
           @click="handleCourseClick(course)"
@@ -42,13 +42,35 @@
           <div class="course-name">{{ course.name }}</div>
         </li>
       </ul>
+
+      <div
+        v-if="filteredCourses.length > PAGE_SIZE"
+        class="pagination-controls"
+      >
+        <button
+          class="nav-button"
+          :disabled="!canShowPrev"
+          @click="showPrev"
+        >
+          Previous
+        </button>
+        <button
+          class="nav-button"
+          :disabled="!canShowNext"
+          @click="showNext"
+        >
+          Next
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { getAllCourses, type Course } from '@/api/concepts/CourseCatalog'
+
+const PAGE_SIZE = 5
 
 // Emits
 const emit = defineEmits<{
@@ -75,6 +97,41 @@ const filteredCourses = computed(() => {
   return courses.value
     .filter(course => course.name.toLowerCase().includes(query))
     .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const visibleStart = ref(0)
+const visibleCourses = computed(() =>
+  filteredCourses.value.slice(visibleStart.value, visibleStart.value + PAGE_SIZE)
+)
+const canShowPrev = computed(() => visibleStart.value > 0)
+const canShowNext = computed(
+  () => visibleStart.value + PAGE_SIZE < filteredCourses.value.length
+)
+
+const showPrev = () => {
+  visibleStart.value = Math.max(0, visibleStart.value - PAGE_SIZE)
+}
+
+const showNext = () => {
+  if (!canShowNext.value) return
+  const remaining =
+    filteredCourses.value.length - (visibleStart.value + PAGE_SIZE)
+  const step = Math.min(PAGE_SIZE, Math.max(remaining, 0))
+  visibleStart.value += step
+}
+
+watch(
+  () => filters.searchQuery,
+  () => {
+    visibleStart.value = 0
+  }
+)
+
+watch(filteredCourses, newList => {
+  if (visibleStart.value >= newList.length && newList.length > 0) {
+    visibleStart.value =
+      Math.max(0, Math.floor((newList.length - 1) / PAGE_SIZE) * PAGE_SIZE)
+  }
 })
 
 // Methods
@@ -172,6 +229,36 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  gap: 0.75rem;
+}
+
+.nav-button {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-background-soft);
+  color: var(--color-text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.nav-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nav-button:not(:disabled):hover {
+  background-color: var(--color-background);
+  border-color: hsla(160, 100%, 37%, 0.5);
+  color: hsla(160, 100%, 37%, 1);
 }
 
 .course-item {
