@@ -1,5 +1,6 @@
 import { apiCall } from "../api";
 import { useAuthStore } from "@/stores/auth";
+import type { TimeSlot } from "./CourseCatalog";
 
 /**
  * Scheduling Concept API Functions
@@ -71,19 +72,19 @@ export async function unscheduleEvent(
 }
 
 /**
- * Retrieves all event IDs from a user's schedule.
+ * Retrieves all event information from a user's schedule.
  * API Spec: POST /api/Scheduling/_getUserSchedule
- * @param user - The user whose schedule to retrieve
- * @returns Array of objects containing event IDs
+ * @param targetUser - The user whose schedule to retrieve
+ * @returns Array of objects containing event details (event, name, type, times)
  */
-export async function getUserSchedule(user: string): Promise<{ event: string }[]> {
+export async function getUserSchedule(targetUser: string): Promise<{ event: string, name: string; type: string; times: TimeSlot }[]> {
   const session = getSessionToken();
   const response = await apiCall(
     "/Scheduling/_getUserSchedule",
-    { user, session },
+    { targetUser, session },
     "getUserSchedule"
   );
-  return response as { event: string }[];
+  return response.results as { event: string, name: string; type: string; times: TimeSlot }[];
 }
 
 /**

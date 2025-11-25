@@ -104,18 +104,19 @@
 ---
 ### POST /api/Scheduling/_getUserSchedule
 
-**Description:** Retrieves all event IDs from a user's schedule.
+**Description:** Retrieves all event information from a user's schedule.
 
 **Requirements:**
-- The `user` has a schedule.
+- The `targetUser` has a schedule.
 
 **Effects:**
-- Returns a set of all events (id's) in the user's schedule.
+- Returns a set of all events with their details (event ID, name, type, and times) in the user's schedule.
 
 **Request Body:**
 ```json
 {
-  "user": "string"
+  "targetUser": "string",
+  "session": "string"
 }
 ```
 
@@ -123,10 +124,16 @@
 ```json
 [
   {
-    "event": "string"
+    "event": "string",
+    "name": "string",
+    "type": "string",
+    "times": "TimeSlot"
   },
   {
-    "event": "string"
+    "event": "string",
+    "name": "string",
+    "type": "string",
+    "times": "TimeSlot"
   }
 ]
 ```
