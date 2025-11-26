@@ -12,9 +12,9 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: "/scheduling",
-      name: "scheduling",
-      component: () => import("../views/SchedulingView.vue"),
+      path: "/schedule",
+      name: "schedule",
+      component: () => import("../views/ScheduleView.vue"),
     },
     {
       path: "/auth",

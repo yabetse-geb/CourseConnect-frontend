@@ -13,7 +13,7 @@ const isAuthPage = computed(() => route.path === '/auth')
   <header v-if="!isAuthPage">
     <nav>
       <RouterLink to="/">Home</RouterLink>
-      <RouterLink to="/scheduling">Scheduling</RouterLink>
+      <RouterLink to="/schedule">Schedule</RouterLink>
       <a href="#" @click.prevent="authStore.logout">Logout</a>
     </nav>
   </header>
