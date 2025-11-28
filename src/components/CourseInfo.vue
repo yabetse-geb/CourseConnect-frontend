@@ -95,9 +95,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Course, CourseEvent } from '@/api/concepts/CourseCatalog'
-import { useFriendsInEvents } from '@/composables/useFriendsInEvents'
+import { getEventFriends, type EventFriendsResult } from '@/api/syncs/friendsInEvents'
 
 const props = defineProps<{
   course: Course | null
@@ -131,8 +131,50 @@ const allEventIds = computed(() => {
   return props.course.events.map(event => event.event)
 })
 
-// Use composable to fetch friends for events
-const { friendsByEventId, loading: loadingFriends, error: friendsError, getFriendsForEvent } = useFriendsInEvents(allEventIds)
+// Friends data state
+const friendsByEventId = ref<Map<string, string[]>>(new Map())
+const loadingFriends = ref(false)
+const friendsError = ref<string | null>(null)
+
+// Fetch friends when event IDs change
+watch(allEventIds, async (eventIds) => {
+  if (eventIds.length === 0) {
+    friendsByEventId.value = new Map()
+    return
+  }
+
+  loadingFriends.value = true
+  friendsError.value = null
+
+  try {
+    const results: EventFriendsResult[] = await getEventFriends(eventIds)
+    const newMap = new Map<string, string[]>()
+    
+    // Initialize with empty arrays
+    eventIds.forEach(id => newMap.set(id, []))
+    
+    // Populate with results
+    results.forEach(result => {
+      const usernames = result.friends
+        .map(f => f.username)
+        .filter((u): u is string => !!u)
+        .sort()
+      newMap.set(result.event, usernames)
+    })
+    
+    friendsByEventId.value = newMap
+  } catch (err: any) {
+    friendsError.value = err.message || 'Failed to load friends'
+    console.error('Error fetching friends for events:', err)
+  } finally {
+    loadingFriends.value = false
+  }
+}, { immediate: true })
+
+// Helper to get friends for a specific event
+const getFriendsForEvent = (eventId: string): string[] => {
+  return friendsByEventId.value.get(eventId) || []
+}
 
 // Find which lecture/recitation is currently scheduled for this course
 const scheduledLectureId = computed(() => {
