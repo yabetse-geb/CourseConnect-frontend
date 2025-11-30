@@ -12,9 +12,15 @@ interface Props {
   session: string | null;
   userId?: string | null; // Optional, kept for backward compatibility
   refreshKey?: number;
+  selectedFriendIds?: string[]; // Array of selected friend IDs (up to 2)
 }
 
 const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  (e: 'friend-selected', friendId: string, friendUsername: string): void
+  (e: 'friend-deselected', friendId: string): void
+}>();
 const authStore = useAuthStore();
 
 interface Friend {
@@ -341,6 +347,19 @@ async function handleAddFriend() {
   }
 }
 
+function handleFriendClick(friend: Friend) {
+  const selectedIds = props.selectedFriendIds || []
+  const isSelected = selectedIds.includes(friend.friendId)
+  
+  if (isSelected) {
+    // Deselect if clicking a selected friend
+    emit('friend-deselected', friend.friendId)
+  } else {
+    // Select the friend (parent will handle limiting to 2)
+    emit('friend-selected', friend.friendId, friend.friendUsername)
+  }
+}
+
 async function handleRemoveFriend(friendUsername: string) {
   const session = props.session || authStore.session;
   if (!session) {
@@ -440,6 +459,12 @@ onMounted(() => {
         v-for="friend in filteredFriends"
         :key="friend.friendId"
         class="friend-item"
+        :class="{ 
+          'selected': props.selectedFriendIds?.includes(friend.friendId),
+          'selected-first': props.selectedFriendIds?.[0] === friend.friendId,
+          'selected-second': props.selectedFriendIds?.[1] === friend.friendId
+        }"
+        @click="handleFriendClick(friend)"
       >
         <span>{{ friend.friendUsername }}</span>
         <button
@@ -567,6 +592,28 @@ onMounted(() => {
 
 .friend-item:hover {
   background-color: var(--color-background-mute);
+}
+
+.friend-item.selected {
+  background-color: hsla(160, 100%, 37%, 0.2);
+}
+
+.friend-item.selected-first {
+  border-left: 3px solid #64b5f6;
+  background-color: hsla(200, 100%, 50%, 0.15);
+}
+
+.friend-item.selected-first:hover {
+  background-color: hsla(200, 100%, 50%, 0.25);
+}
+
+.friend-item.selected-second {
+  border-left: 3px solid #f06292;
+  background-color: hsla(340, 100%, 50%, 0.15);
+}
+
+.friend-item.selected-second:hover {
+  background-color: hsla(340, 100%, 50%, 0.25);
 }
 
 .friend-item span {

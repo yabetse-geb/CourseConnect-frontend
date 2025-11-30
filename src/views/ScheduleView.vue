@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import WeekCalendar from '../components/WeekCalendar.vue'
 import CourseSearch from '../components/CourseSearch.vue'
 import CourseInfo from '../components/CourseInfo.vue'
+import FriendsList from '../components/FriendsList.vue'
 import type { Course, CourseEvent, EventInfo } from '@/api/concepts/CourseCatalog'
 import { scheduleEvent, unscheduleEvent, getUserSchedule } from '@/api/concepts/SchedulingAPI'
 import { getEventInfo, getAllCourses } from '@/api/concepts/CourseCatalog'
@@ -16,8 +17,18 @@ const temporaryEvent = ref<{ event: CourseEvent; courseName: string } | null>(nu
 // Track scheduled events from backend
 const scheduledEvents = ref<EventInfo[]>([])
 
-// Track hidden event IDs
-const hiddenEventIds = ref<Set<string>>(new Set())
+// Track selected friends for schedule comparison (up to 2)
+interface SelectedFriend {
+  id: string
+  username: string
+  schedule: EventInfo[]
+}
+const selectedFriends = ref<SelectedFriend[]>([])
+
+// Computed properties for template
+const selectedFriendIds = computed(() => selectedFriends.value.map(f => f.id))
+const friend1Schedule = computed(() => selectedFriends.value[0]?.schedule || [])
+const friend2Schedule = computed(() => selectedFriends.value[1]?.schedule || [])
 
 // Get unique course names from scheduled events for the toggle buttons
 const scheduledCourseNames = computed(() => {
@@ -108,8 +119,6 @@ const handleRemoveEvent = async (eventId: string) => {
     // Refresh schedule after removing
     await refreshSchedule()
     console.log('Schedule refreshed, new scheduled events:', scheduledEvents.value)
-    // Remove from hidden events if it was hidden
-    hiddenEventIds.value.delete(eventId)
   } catch (err) {
     console.error('Failed to remove event from schedule:', err)
     // Still refresh to get current state
@@ -117,17 +126,42 @@ const handleRemoveEvent = async (eventId: string) => {
   }
 }
 
-const handleHideEvent = (eventId: string) => {
-  hiddenEventIds.value.add(eventId)
+const handleFriendSelected = async (friendId: string, friendUsername: string) => {
+  // Check if already selected
+  if (selectedFriends.value.some(f => f.id === friendId)) {
+    return
+  }
+  
+  // Limit to 2 friends
+  if (selectedFriends.value.length >= 2) {
+    // Remove the first one to make room
+    selectedFriends.value.shift()
+  }
+  
+  try {
+    const friendEvents = await getUserSchedule(friendId)
+    selectedFriends.value.push({
+      id: friendId,
+      username: friendUsername,
+      schedule: friendEvents
+    })
+    console.log('Fetched friend schedule:', friendEvents)
+  } catch (err) {
+    console.error('Failed to fetch friend schedule:', err)
+  }
+}
+
+const handleFriendDeselected = (friendId: string) => {
+  selectedFriends.value = selectedFriends.value.filter(f => f.id !== friendId)
+}
+
+const clearAllFriends = () => {
+  selectedFriends.value = []
 }
 
 const handleShowCourse = (courseName: string) => {
-  // Find all events for this course and remove them from hidden set
-  scheduledEvents.value.forEach(event => {
-    if (event.name === courseName) {
-      hiddenEventIds.value.delete(event.event)
-    }
-  })
+  // This function was used to show hidden courses, but hiding is no longer supported
+  console.log('Show course:', courseName)
 }
 
 // Fetch schedule on mount
@@ -140,6 +174,14 @@ onMounted(() => {
 <template>
   <div class="scheduling-view">
     <div class="schedule-row">
+      <div class="friends-column">
+        <FriendsList 
+          :session="authStore.session" 
+          :selected-friend-ids="selectedFriendIds"
+          @friend-selected="handleFriendSelected"
+          @friend-deselected="handleFriendDeselected"
+        />
+      </div>
       <div class="calendar-container">
         <div v-if="scheduledCourseNames.length > 0" class="course-toggle-buttons">
           <button 
@@ -151,11 +193,25 @@ onMounted(() => {
             {{ courseName }}
           </button>
         </div>
+        <div v-if="selectedFriends.length > 0" class="comparison-header">
+          <div class="comparison-info">
+            Comparing with: 
+            <strong v-for="(friend, index) in selectedFriends" :key="friend.id" :class="`friend-name-${index + 1}`">
+              {{ friend.username }}<span v-if="index < selectedFriends.length - 1">, </span>
+            </strong>
+          </div>
+          <div class="legend">
+            <span class="legend-item"><span class="legend-color user-color"></span> Your schedule</span>
+            <span v-if="selectedFriends[0]" class="legend-item"><span class="legend-color friend1-color"></span> {{ selectedFriends[0].username }}</span>
+            <span v-if="selectedFriends[1]" class="legend-item"><span class="legend-color friend2-color"></span> {{ selectedFriends[1].username }}</span>
+          </div>
+          <button class="clear-comparison-btn" @click="clearAllFriends">Clear All</button>
+        </div>
         <WeekCalendar 
           :scheduled-events="scheduledEvents"
-          :hidden-event-ids="hiddenEventIds"
+          :friend1-events="friend1Schedule"
+          :friend2-events="friend2Schedule"
           @block-clicked="handleBlockClick"
-          @hide-event="handleHideEvent"
         />
       </div>
     </div>
@@ -186,16 +242,121 @@ onMounted(() => {
 }
 
 .schedule-row {
+  display: flex;
+  gap: 1.5rem;
   width: 100%;
   max-height: 50vh;
   overflow: hidden;
   flex-shrink: 0;
 }
 
+.friends-column {
+  width: 280px;
+  flex-shrink: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.friends-column :deep(.friends-box) {
+  height: 100%;
+  min-height: unset;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.friends-column :deep(.friends-list) {
+  max-height: calc(100% - 120px);
+  overflow-y: auto;
+}
+
 .calendar-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
+}
+
+.comparison-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: hsla(200, 100%, 50%, 0.15);
+  border: 1px solid hsla(200, 100%, 50%, 0.3);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  flex-wrap: wrap;
+}
+
+.comparison-info {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.comparison-header strong {
+  color: hsla(200, 100%, 60%, 1);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-color.user-color {
+  background: #66bb6a;
+  border: 1px solid #388e3c;
+}
+
+.legend-color.friend1-color {
+  background: #64b5f6;
+  border: 1px solid #1976d2;
+}
+
+.legend-color.friend2-color {
+  background: #f06292;
+  border: 1px solid #c2185b;
+}
+
+.friend-name-1 {
+  color: #64b5f6;
+}
+
+.friend-name-2 {
+  color: #f06292;
+}
+
+.clear-comparison-btn {
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clear-comparison-btn:hover {
+  background: var(--color-background-mute);
 }
 
 .course-toggle-buttons {
@@ -245,6 +406,16 @@ onMounted(() => {
 }
 
 @media (max-width: 1024px) {
+  .schedule-row {
+    flex-direction: column;
+    max-height: none;
+  }
+
+  .friends-column {
+    width: 100%;
+    max-height: 300px;
+  }
+
   .courses-row {
     grid-template-columns: 1fr;
     gap: 2rem;

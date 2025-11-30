@@ -35,9 +35,9 @@
             :start-time="block.startTime"
             :duration="block.duration"
             :color="block.color"
-            :is-hidden="props.hiddenEventIds?.has(block.eventId)"
+            :column-index="block.columnIndex"
+            :total-columns="block.totalColumns"
             @block-clicked="(courseName) => emit('block-clicked', courseName)"
-            @hide-event="(eventId) => emit('hide-event', eventId)"
           />
         </div>
       </div>
@@ -62,14 +62,19 @@ interface ClassBlock {
   color: 'red' | 'green' | 'pink' | 'gray' | 'blue'
 }
 
+interface ClassBlockWithLayout extends ClassBlock {
+  columnIndex: number
+  totalColumns: number
+}
+
 const props = defineProps<{
   scheduledEvents: EventInfo[]
-  hiddenEventIds?: Set<string>
+  friend1Events?: EventInfo[]
+  friend2Events?: EventInfo[]
 }>()
 
 const emit = defineEmits<{
   (e: 'block-clicked', courseName: string): void
-  (e: 'hide-event', eventId: string): void
 }>()
 
 const weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI']
@@ -136,16 +141,136 @@ const scheduledBlocks = computed<ClassBlock[]>(() => {
   return blocks
 })
 
-// All blocks (scheduled events only)
-const allBlocks = computed<ClassBlock[]>(() => {
-  const blocks = [...scheduledBlocks.value]
-  console.log('WeekCalendar - All event blocks:', blocks)
-  console.log('WeekCalendar - Scheduled blocks:', scheduledBlocks.value)
+// Convert friend 1 events to schedule blocks with blue color
+const friend1Blocks = computed<ClassBlock[]>(() => {
+  if (!props.friend1Events || props.friend1Events.length === 0) return []
+  
+  console.log('WeekCalendar - Converting friend1Events to blocks:', props.friend1Events)
+  const blocks: ClassBlock[] = []
+  props.friend1Events.forEach((eventInfo) => {
+    const startTime = timeToHours(eventInfo.times.startTime)
+    const duration = calculateDuration(eventInfo.times.startTime, eventInfo.times.endTime)
+    
+    // Create a separate block for each day with blue color for friend 1's schedule
+    eventInfo.times.days.forEach((day) => {
+      const block = {
+        id: `friend1-${eventInfo.event}-${day}`,
+        code: eventInfo.name,
+        type: eventInfo.type,
+        courseName: eventInfo.name,
+        eventId: eventInfo.event,
+        day: convertDayName(day),
+        startTime: startTime,
+        duration: duration,
+        color: 'blue' as const
+      }
+      blocks.push(block)
+    })
+  })
+  
+  console.log('WeekCalendar - Friend 1 blocks created:', blocks)
   return blocks
 })
 
-const getBlocksForDay = (day: string) => {
-  return allBlocks.value.filter(block => block.day === day)
+// Convert friend 2 events to schedule blocks with pink color
+const friend2Blocks = computed<ClassBlock[]>(() => {
+  if (!props.friend2Events || props.friend2Events.length === 0) return []
+  
+  console.log('WeekCalendar - Converting friend2Events to blocks:', props.friend2Events)
+  const blocks: ClassBlock[] = []
+  props.friend2Events.forEach((eventInfo) => {
+    const startTime = timeToHours(eventInfo.times.startTime)
+    const duration = calculateDuration(eventInfo.times.startTime, eventInfo.times.endTime)
+    
+    // Create a separate block for each day with pink color for friend 2's schedule
+    eventInfo.times.days.forEach((day) => {
+      const block = {
+        id: `friend2-${eventInfo.event}-${day}`,
+        code: eventInfo.name,
+        type: eventInfo.type,
+        courseName: eventInfo.name,
+        eventId: eventInfo.event,
+        day: convertDayName(day),
+        startTime: startTime,
+        duration: duration,
+        color: 'pink' as const
+      }
+      blocks.push(block)
+    })
+  })
+  
+  console.log('WeekCalendar - Friend 2 blocks created:', blocks)
+  return blocks
+})
+
+// All blocks (user's scheduled events + both friends' events)
+const allBlocks = computed<ClassBlock[]>(() => {
+  const blocks = [...scheduledBlocks.value, ...friend1Blocks.value, ...friend2Blocks.value]
+  console.log('WeekCalendar - All event blocks:', blocks)
+  console.log('WeekCalendar - Scheduled blocks:', scheduledBlocks.value)
+  console.log('WeekCalendar - Friend 1 blocks:', friend1Blocks.value)
+  console.log('WeekCalendar - Friend 2 blocks:', friend2Blocks.value)
+  return blocks
+})
+
+// Check if two blocks overlap in time
+const blocksOverlap = (a: ClassBlock, b: ClassBlock): boolean => {
+  const aEnd = a.startTime + a.duration
+  const bEnd = b.startTime + b.duration
+  return a.startTime < bEnd && b.startTime < aEnd
+}
+
+// Assign column positions to overlapping blocks
+const assignColumnPositions = (blocks: ClassBlock[]): ClassBlockWithLayout[] => {
+  if (blocks.length === 0) return []
+  
+  // Sort blocks by start time
+  const sorted = [...blocks].sort((a, b) => a.startTime - b.startTime)
+  
+  // Find overlapping groups
+  const groups: ClassBlock[][] = []
+  let currentGroup: ClassBlock[] = []
+  
+  sorted.forEach((block) => {
+    if (currentGroup.length === 0) {
+      currentGroup.push(block)
+    } else {
+      // Check if this block overlaps with any in the current group
+      const overlapsWithGroup = currentGroup.some(b => blocksOverlap(b, block))
+      if (overlapsWithGroup) {
+        currentGroup.push(block)
+      } else {
+        // Start a new group
+        groups.push(currentGroup)
+        currentGroup = [block]
+      }
+    }
+  })
+  
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup)
+  }
+  
+  // Assign columns within each group
+  const result: ClassBlockWithLayout[] = []
+  
+  groups.forEach((group) => {
+    const totalColumns = group.length
+    group.forEach((block, index) => {
+      result.push({
+        ...block,
+        columnIndex: index,
+        totalColumns
+      })
+    })
+  })
+  
+  return result
+}
+
+const getBlocksForDay = (day: string): ClassBlockWithLayout[] => {
+  const dayBlocks = allBlocks.value.filter(block => block.day === day)
+  return assignColumnPositions(dayBlocks)
 }
 
 const formatHour = (hour: number) => {
