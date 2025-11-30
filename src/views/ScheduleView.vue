@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import WeekCalendar from '../components/WeekCalendar.vue'
 import CourseSearch from '../components/CourseSearch.vue'
 import CourseInfo from '../components/CourseInfo.vue'
-import FriendsList from '../components/FriendsList.vue'
+import GroupScheduleList from '../components/GroupScheduleList.vue'
 import type { Course, CourseEvent, EventInfo } from '@/api/concepts/CourseCatalog'
 import { scheduleEvent, unscheduleEvent, getUserSchedule } from '@/api/concepts/SchedulingAPI'
 import { getEventInfo, getAllCourses } from '@/api/concepts/CourseCatalog'
@@ -42,7 +42,9 @@ const scheduledEventIds = computed(() => {
   return new Set(scheduledEvents.value.map(se => se.event))
 })
 
-// Fetch schedule from backend
+// Fetch the user's own schedule from backend
+// This schedule is always displayed in the calendar (green blocks)
+// This is why the current user is filtered out from GroupScheduleList - their schedule is always visible
 const fetchSchedule = async () => {
   try {
     console.log('Fetching schedule...')
@@ -175,7 +177,7 @@ onMounted(() => {
   <div class="scheduling-view">
     <div class="schedule-row">
       <div class="friends-column">
-        <FriendsList 
+        <GroupScheduleList 
           :session="authStore.session" 
           :selected-friend-ids="selectedFriendIds"
           @friend-selected="handleFriendSelected"
@@ -193,20 +195,22 @@ onMounted(() => {
             {{ courseName }}
           </button>
         </div>
-        <div v-if="selectedFriends.length > 0" class="comparison-header">
-          <div class="comparison-info">
-            Comparing with: 
-            <strong v-for="(friend, index) in selectedFriends" :key="friend.id" :class="`friend-name-${index + 1}`">
-              {{ friend.username }}<span v-if="index < selectedFriends.length - 1">, </span>
-            </strong>
-          </div>
+        <div class="comparison-header">
           <div class="legend">
             <span class="legend-item"><span class="legend-color user-color"></span> Your schedule</span>
             <span v-if="selectedFriends[0]" class="legend-item"><span class="legend-color friend1-color"></span> {{ selectedFriends[0].username }}</span>
             <span v-if="selectedFriends[1]" class="legend-item"><span class="legend-color friend2-color"></span> {{ selectedFriends[1].username }}</span>
           </div>
-          <button class="clear-comparison-btn" @click="clearAllFriends">Clear All</button>
+          <div v-if="selectedFriends.length > 0" class="comparison-info">
+            Comparing with: 
+            <strong v-for="(friend, index) in selectedFriends" :key="friend.id" :class="`friend-name-${index + 1}`">
+              {{ friend.username }}<span v-if="index < selectedFriends.length - 1">, </span>
+            </strong>
+          </div>
+          <button v-if="selectedFriends.length > 0" class="clear-comparison-btn" @click="clearAllFriends">Clear All</button>
         </div>
+        <!-- User's own schedule (always displayed as green blocks) -->
+        <!-- This is why the current user is filtered out from GroupScheduleList -->
         <WeekCalendar 
           :scheduled-events="scheduledEvents"
           :friend1-events="friend1Schedule"

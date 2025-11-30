@@ -6,6 +6,7 @@ import { apiCall } from "@/api/api";
 import FriendsList from "@/components/FriendsList.vue";
 import BlockedListView from "@/components/BlockedListView.vue";
 import GroupsList from "@/components/GroupsList.vue";
+import GroupMem from "@/components/GroupMem.vue";
 import FriendRequestsList from "@/components/FriendRequestsList.vue";
 import OutgoingFriendRequestsList from "@/components/OutgoingFriendRequestsList.vue";
 
@@ -20,6 +21,8 @@ const username = ref("");
 
 const currentUserId = ref<string | null>(authStore.user || null);
 const friendListRefreshKey = ref(0);
+const selectedGroupId = ref<string | null>(null);
+const selectedGroupName = ref<string | null>(null);
 
 function handleFriendUpdates() {
   friendListRefreshKey.value += 1;
@@ -28,6 +31,11 @@ function handleFriendUpdates() {
 function handleFriendRequestSent(username: string) {
   // Add the request optimistically (immediately without loading indicator)
   outgoingRequestsListRef.value?.addRequestOptimistically(username);
+}
+
+function handleGroupSelected(groupId: string, groupName: string) {
+  selectedGroupId.value = groupId;
+  selectedGroupName.value = groupName;
 }
 
 async function getUserFromSession() {
@@ -147,7 +155,12 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="requests-section" v-if="authStore.session">
+    <div class="row-1" v-if="authStore.session">
+      <FriendsList
+        :session="authStore.session"
+        :refreshKey="friendListRefreshKey"
+        @friend-request-sent="handleFriendRequestSent"
+      />
       <FriendRequestsList
         :session="authStore.session"
         @friend-updated="handleFriendUpdates"
@@ -158,14 +171,17 @@ onMounted(async () => {
       />
     </div>
 
-    <div class="lists-section">
-      <FriendsList
+    <div class="row-2" v-if="authStore.session">
+      <GroupsList
         :session="authStore.session"
-        :refreshKey="friendListRefreshKey"
-        @friend-request-sent="handleFriendRequestSent"
+        @group-selected="handleGroupSelected"
+      />
+      <GroupMem
+        :session="authStore.session"
+        :selectedGroupId="selectedGroupId"
+        :selectedGroupName="selectedGroupName"
       />
       <BlockedListView :session="authStore.session" />
-      <GroupsList :userId="currentUserId" />
     </div>
   </div>
 </template>
@@ -231,27 +247,22 @@ onMounted(async () => {
   min-width: 250px;
 }
 
-.requests-section {
+.row-1 {
   margin-bottom: 30px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
-@media (max-width: 1024px) {
-  .requests-section {
-    grid-template-columns: 1fr;
-  }
-}
-
-.lists-section {
+.row-2 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
 @media (max-width: 1024px) {
-  .lists-section {
+  .row-1,
+  .row-2 {
     grid-template-columns: 1fr;
   }
 }
