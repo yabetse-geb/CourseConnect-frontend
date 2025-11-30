@@ -101,8 +101,11 @@ async function loadOutgoingRequests() {
             return item.id;
           }
           const keys = Object.keys(item);
-          if (keys.length === 1 && typeof item[keys[0]] === "string") {
-            return item[keys[0]];
+          if (keys.length === 1) {
+            const firstKey = keys[0];
+            if (firstKey && typeof item[firstKey] === "string") {
+              return item[firstKey];
+            }
           }
         }
         return null;
@@ -324,8 +327,11 @@ async function loadOutgoingRequestsSilently() {
             return item.id;
           }
           const keys = Object.keys(item);
-          if (keys.length === 1 && typeof item[keys[0]] === "string") {
-            return item[keys[0]];
+          if (keys.length === 1) {
+            const firstKey = keys[0];
+            if (firstKey && typeof item[firstKey] === "string") {
+              return item[firstKey];
+            }
           }
         }
         return null;
