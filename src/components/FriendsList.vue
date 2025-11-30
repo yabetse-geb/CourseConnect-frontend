@@ -18,8 +18,9 @@ interface Props {
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  (e: 'friend-selected', friendId: string, friendUsername: string): void
-  (e: 'friend-deselected', friendId: string): void
+  (e: "friend-selected", friendId: string, friendUsername: string): void;
+  (e: "friend-deselected", friendId: string): void;
+  (e: "friend-request-sent", username: string): void; // Emit when a friend request is successfully sent, with the username
 }>();
 const authStore = useAuthStore();
 
@@ -339,6 +340,8 @@ async function handleAddFriend() {
     searchQuery.value = "";
     // Reload friends list to show the new friend if they accepted immediately
     await loadFriends();
+    // Emit event to notify parent that a friend request was sent with the username
+    emit("friend-request-sent", usernameToAdd);
   } catch (e: any) {
     error.value = e.message || "Failed to send friend request";
     console.error("Error sending friend request:", e);
@@ -348,15 +351,15 @@ async function handleAddFriend() {
 }
 
 function handleFriendClick(friend: Friend) {
-  const selectedIds = props.selectedFriendIds || []
-  const isSelected = selectedIds.includes(friend.friendId)
-  
+  const selectedIds = props.selectedFriendIds || [];
+  const isSelected = selectedIds.includes(friend.friendId);
+
   if (isSelected) {
     // Deselect if clicking a selected friend
-    emit('friend-deselected', friend.friendId)
+    emit("friend-deselected", friend.friendId);
   } else {
     // Select the friend (parent will handle limiting to 2)
-    emit('friend-selected', friend.friendId, friend.friendUsername)
+    emit("friend-selected", friend.friendId, friend.friendUsername);
   }
 }
 
@@ -459,10 +462,10 @@ onMounted(() => {
         v-for="friend in filteredFriends"
         :key="friend.friendId"
         class="friend-item"
-        :class="{ 
-          'selected': props.selectedFriendIds?.includes(friend.friendId),
+        :class="{
+          selected: props.selectedFriendIds?.includes(friend.friendId),
           'selected-first': props.selectedFriendIds?.[0] === friend.friendId,
-          'selected-second': props.selectedFriendIds?.[1] === friend.friendId
+          'selected-second': props.selectedFriendIds?.[1] === friend.friendId,
         }"
         @click="handleFriendClick(friend)"
       >

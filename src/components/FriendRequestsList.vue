@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import {
   getAllIncomingFriendRequestsBySession,
   acceptFriend,
   rejectFriend,
 } from "@/api/concepts/FriendingAPI";
-import { getUsername } from "@/api/syncs/auth";
+import { getUsername, getAllUsers } from "@/api/syncs/auth";
 
 interface Props {
   session: string | null;
@@ -24,8 +24,14 @@ interface FriendRequest {
 }
 
 const requests = ref<FriendRequest[]>([]);
+const searchQuery = ref("");
 const loading = ref(false);
 const error = ref<string | null>(null);
+
+// Autocomplete state - following CourseSearch.vue pattern
+const allUsersWithUsernames = ref<{ userId: string; username: string }[]>([]);
+const loadingSuggestions = ref(false);
+const showSuggestions = ref(false);
 
 async function loadRequests() {
   if (!props.session) {
@@ -147,6 +153,123 @@ async function loadRequests() {
   }
 }
 
+// Computed property for filtered requests
+const filteredRequests = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return requests.value;
+  }
+  const query = searchQuery.value.toLowerCase().trim();
+  return requests.value.filter((r) =>
+    r.requesterUsername.toLowerCase().includes(query)
+  );
+});
+
+// Computed property for autocomplete suggestions - following CourseSearch.vue pattern
+const filteredSuggestions = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return [];
+  }
+
+  const query = searchQuery.value.toLowerCase().trim();
+  return allUsersWithUsernames.value
+    .filter((user) => {
+      const username = user.username.toLowerCase();
+      return username.includes(query) && username !== "unknown user";
+    })
+    .map((user) => user.username)
+    .slice(0, 10); // Limit to 10 suggestions
+});
+
+// Load all users for autocomplete - following CourseSearch.vue pattern
+async function loadAllUsers() {
+  const session = props.session || authStore.session;
+  if (!session || allUsersWithUsernames.value.length > 0) {
+    return;
+  }
+
+  loadingSuggestions.value = true;
+  error.value = null;
+
+  try {
+    const userIds = await getAllUsers(session);
+
+    // Fetch usernames for all users
+    const usersWithUsernames = await Promise.all(
+      userIds.map(async (userId: string) => {
+        try {
+          const username = await getUsername(userId);
+          if (!username) {
+            return null;
+          }
+          return {
+            userId,
+            username,
+          };
+        } catch (e) {
+          console.error(`Error fetching username for ${userId}:`, e);
+          return null;
+        }
+      })
+    );
+
+    // Filter out null entries (users without usernames)
+    allUsersWithUsernames.value = usersWithUsernames.filter(
+      (user): user is { userId: string; username: string } => user !== null
+    );
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "Failed to load users";
+    allUsersWithUsernames.value = [];
+  } finally {
+    loadingSuggestions.value = false;
+  }
+}
+
+// Handle search input - following CourseSearch.vue pattern
+async function handleSearch() {
+  // Ensure users are loaded if not already
+  if (allUsersWithUsernames.value.length === 0) {
+    const session = props.session || authStore.session;
+    if (session) {
+      await loadAllUsers();
+    }
+  }
+
+  // Show suggestions if there's a query and results
+  showSuggestions.value =
+    searchQuery.value.trim().length > 0 && filteredSuggestions.value.length > 0;
+}
+
+// Watch search query to automatically show/hide suggestions
+watch(
+  () => searchQuery.value,
+  () => {
+    const query = searchQuery.value.trim();
+    if (query.length > 0) {
+      const hasSuggestions = filteredSuggestions.value.length > 0;
+      showSuggestions.value = hasSuggestions;
+    } else {
+      showSuggestions.value = false;
+    }
+  }
+);
+
+function selectSuggestion(username: string) {
+  searchQuery.value = username;
+  showSuggestions.value = false;
+}
+
+function handleInputFocus() {
+  if (searchQuery.value && searchQuery.value.trim().length > 0) {
+    showSuggestions.value = filteredSuggestions.value.length > 0;
+  }
+}
+
+function handleInputBlur() {
+  setTimeout(() => {
+    showSuggestions.value = false;
+  }, 200);
+}
+
 async function handleAccept(requesterUsername: string) {
   if (!authStore.session) return;
 
@@ -181,8 +304,23 @@ async function handleReject(requesterUsername: string) {
   }
 }
 
+watch(
+  () => props.session,
+  (newSession) => {
+    if (newSession) {
+      loadRequests();
+      loadAllUsers(); // Load all users for autocomplete when session becomes available
+    }
+  },
+  { immediate: true }
+);
+
 onMounted(() => {
-  loadRequests();
+  const session = props.session || authStore.session;
+  if (session) {
+    loadRequests();
+    loadAllUsers(); // Load all users for autocomplete - following CourseSearch.vue pattern
+  }
 });
 </script>
 
@@ -190,15 +328,42 @@ onMounted(() => {
   <div class="requests-box">
     <h2>FRIEND REQUESTS</h2>
 
+    <div class="search-section">
+      <div class="search-input-wrapper">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search:"
+          class="search-input"
+          @input="handleSearch"
+          @focus="handleInputFocus"
+          @blur="handleInputBlur"
+        />
+        <ul
+          v-if="showSuggestions && filteredSuggestions.length > 0"
+          class="suggestions-list"
+        >
+          <li
+            v-for="(suggestion, index) in filteredSuggestions"
+            :key="index"
+            class="suggestion-item"
+            @mousedown.prevent="selectSuggestion(suggestion)"
+          >
+            {{ suggestion }}
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <div v-if="error" class="error-message">{{ error }}</div>
 
-    <div v-if="loading && requests.length === 0" class="loading">
+    <div v-if="loading && filteredRequests.length === 0" class="loading">
       Loading...
     </div>
 
     <ul v-else class="requests-list">
       <li
-        v-for="request in requests"
+        v-for="request in filteredRequests"
         :key="request.requesterId"
         class="request-item"
       >
@@ -225,7 +390,7 @@ onMounted(() => {
           </button>
         </div>
       </li>
-      <li v-if="requests.length === 0" class="empty-message">
+      <li v-if="filteredRequests.length === 0" class="empty-message">
         No pending friend requests
       </li>
     </ul>
@@ -249,6 +414,65 @@ onMounted(() => {
   font-size: 1.2rem;
   text-align: center;
   color: white;
+}
+
+.search-section {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-background);
+  color: white;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.suggestions-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  padding: 0;
+  list-style: none;
+  background-color: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.suggestion-item {
+  padding: 10px;
+  cursor: pointer;
+  color: white;
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: var(--color-background-mute);
 }
 
 .requests-list {

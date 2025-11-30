@@ -7,6 +7,11 @@ import FriendsList from "@/components/FriendsList.vue";
 import BlockedListView from "@/components/BlockedListView.vue";
 import GroupsList from "@/components/GroupsList.vue";
 import FriendRequestsList from "@/components/FriendRequestsList.vue";
+import OutgoingFriendRequestsList from "@/components/OutgoingFriendRequestsList.vue";
+
+const outgoingRequestsListRef = ref<InstanceType<
+  typeof OutgoingFriendRequestsList
+> | null>(null);
 
 const authStore = useAuthStore();
 
@@ -18,6 +23,11 @@ const friendListRefreshKey = ref(0);
 
 function handleFriendUpdates() {
   friendListRefreshKey.value += 1;
+}
+
+function handleFriendRequestSent(username: string) {
+  // Add the request optimistically (immediately without loading indicator)
+  outgoingRequestsListRef.value?.addRequestOptimistically(username);
 }
 
 async function getUserFromSession() {
@@ -142,12 +152,17 @@ onMounted(async () => {
         :session="authStore.session"
         @friend-updated="handleFriendUpdates"
       />
+      <OutgoingFriendRequestsList
+        ref="outgoingRequestsListRef"
+        :session="authStore.session"
+      />
     </div>
 
     <div class="lists-section">
       <FriendsList
         :session="authStore.session"
         :refreshKey="friendListRefreshKey"
+        @friend-request-sent="handleFriendRequestSent"
       />
       <BlockedListView :session="authStore.session" />
       <GroupsList :userId="currentUserId" />
@@ -218,6 +233,15 @@ onMounted(async () => {
 
 .requests-section {
   margin-bottom: 30px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .requests-section {
+    grid-template-columns: 1fr;
+  }
 }
 
 .lists-section {

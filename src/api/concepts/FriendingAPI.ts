@@ -190,6 +190,7 @@ export async function getAllOutgoingFriendRequestsBySession(
     { session },
     "Get All Outgoing Friend Requests"
   );
+
   return response as { requestees: string[] };
 }
 
