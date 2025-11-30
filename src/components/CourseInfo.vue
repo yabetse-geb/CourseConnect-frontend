@@ -5,7 +5,26 @@
     </div>
     
     <div v-else class="course-details">
-      <h2 class="course-title">{{ course.name }}</h2>
+      <div class="course-header">
+        <h2 class="course-title">{{ course.name }}</h2>
+        <div class="group-filter-section">
+          <label for="group-filter" class="group-filter-label">Show members of group:</label>
+          <select 
+            id="group-filter"
+            v-model="selectedGroupFilter" 
+            class="group-filter-select"
+          >
+            <option :value="null">All</option>
+            <option 
+              v-for="group in availableGroupOptions" 
+              :key="group.id" 
+              :value="group.id"
+            >
+              {{ group.name }}
+            </option>
+          </select>
+        </div>
+      </div>
       
       <div 
         class="events-container" 
@@ -42,6 +61,16 @@
                     No friends enrolled
                   </span>
                 </div>
+                <div v-if="loadingGroupMembers" class="event-friends">
+                  Loading group members...
+                </div>
+                <div v-else class="event-friends">
+                  <template v-for="[groupId, members] in getGroupMembersForEvent(event.event)" :key="groupId">
+                    <div v-if="members.length > 0" class="event-group-members">
+                      Group {{ getGroupNameById(groupId) }}: {{ members.join(', ') }}
+                    </div>
+                  </template>
+                </div>
               </div>
               <div class="event-actions" @click.stop>
                 <button 
@@ -64,6 +93,9 @@
 import { computed, ref, watch } from 'vue'
 import type { Course, CourseEvent } from '@/api/concepts/CourseCatalog'
 import { getEventFriends, type EventFriendsResult } from '@/api/syncs/friendsInEvents'
+import { getUserGroups, getMembersInEvents, getGroupName } from '@/api/concepts/GroupingAPI'
+import { getUsername } from '@/api/syncs/auth'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   course: Course | null
@@ -75,6 +107,10 @@ const emit = defineEmits<{
   (e: 'add-event', eventId: string): void
   (e: 'remove-event', eventId: string): void
 }>()
+
+// Get current user ID from auth store
+const authStore = useAuthStore()
+const currentUserId = computed(() => authStore.user)
 
 // Event type configuration with fixed order
 const eventTypeConfigs = [
@@ -116,6 +152,16 @@ const friendsByEventId = ref<Map<string, string[]>>(new Map())
 const loadingFriends = ref(false)
 const friendsError = ref<string | null>(null)
 
+// Group members data state
+const groupMembersByGroupId = ref<Map<string, string[]>>(new Map())
+const groupMembersByEventId = ref<Map<string, Map<string, string[]>>>(new Map())
+const groupNamesByGroupId = ref<Map<string, string>>(new Map())
+const loadingGroupMembers = ref(false)
+const groupMembersError = ref<string | null>(null)
+
+// Group filter state
+const selectedGroupFilter = ref<string | null>(null)
+
 // Fetch friends when event IDs change
 watch(allEventIds, async (eventIds) => {
   if (eventIds.length === 0) {
@@ -154,6 +200,144 @@ watch(allEventIds, async (eventIds) => {
 // Helper to get friends for a specific event
 const getFriendsForEvent = (eventId: string): string[] => {
   return friendsByEventId.value.get(eventId) || []
+}
+
+// Helper function to fetch group members for events
+async function fetchGroupMembersForEvents(eventIds: string[]) {
+  if (eventIds.length === 0) {
+    groupMembersByEventId.value = new Map()
+    groupMembersByGroupId.value = new Map()
+    groupNamesByGroupId.value = new Map()
+    return
+  }
+
+  loadingGroupMembers.value = true
+  groupMembersError.value = null
+
+  try {
+    // Get all groups the user is in
+    const groupIds = await getUserGroups()
+    
+    if (!Array.isArray(groupIds) || groupIds.length === 0) {
+      groupMembersByEventId.value = new Map()
+      groupMembersByGroupId.value = new Map()
+      groupNamesByGroupId.value = new Map()
+      return
+    }
+
+    // Call the API to get members in events (returns event -> group -> user IDs)
+    const result = await getMembersInEvents(groupIds, eventIds)
+
+    // Initialize the event map
+    const eventMap = new Map<string, Map<string, string[]>>()
+    
+    // Collect all unique user IDs to convert to usernames in batch
+    const allUserIds = new Set<string>()
+    for (const eventId of eventIds) {
+      const eventGroups = result[eventId] || {}
+      eventMap.set(eventId, new Map<string, string[]>())
+      for (const groupId of Object.keys(eventGroups)) {
+        const userIds = eventGroups[groupId] || []
+        userIds.forEach(userId => allUserIds.add(userId))
+      }
+    }
+
+    // Convert all user IDs to usernames
+    const usernameMap = new Map<string, string>()
+    const usernamePromises = Array.from(allUserIds).map(async (userId) => {
+      const username = await getUsername(userId)
+      if (username) {
+        usernameMap.set(userId, username)
+      }
+    })
+    await Promise.all(usernamePromises)
+
+    // Fetch group names for display
+    const groupNamePromises = groupIds.map(async (groupId: string) => {
+      try {
+        const groupNameResponse = await getGroupName(groupId)
+        const groupName = groupNameResponse?.name?.trim() || `Group ${groupId}`
+        groupNamesByGroupId.value.set(groupId, groupName)
+      } catch (err) {
+        console.warn(`Error fetching group name for ${groupId}:`, err)
+        groupNamesByGroupId.value.set(groupId, `Group ${groupId}`)
+      }
+    })
+    await Promise.all(groupNamePromises)
+
+    // Build the final mapping: event -> group -> usernames
+    // Filter out the current user from all groups
+    const currentUserIdValue = currentUserId.value
+    for (const eventId of eventIds) {
+      const eventGroups = result[eventId] || {}
+      const eventGroupMap = new Map<string, string[]>()
+      
+      for (const groupId of Object.keys(eventGroups)) {
+        const userIds = eventGroups[groupId] || []
+        // Filter out the current user before converting to usernames
+        const otherUserIds = currentUserIdValue 
+          ? userIds.filter(userId => userId !== currentUserIdValue)
+          : userIds
+        
+        const usernames = otherUserIds
+          .map(userId => usernameMap.get(userId))
+          .filter((u): u is string => !!u)
+          .sort()
+        
+        // Only include groups that have at least one member after filtering out current user
+        if (usernames.length > 0) {
+          eventGroupMap.set(groupId, usernames)
+        }
+      }
+      
+      eventMap.set(eventId, eventGroupMap)
+    }
+
+    groupMembersByEventId.value = eventMap
+  } catch (err: any) {
+    groupMembersError.value = err.message || 'Failed to load group members'
+    console.error('Error fetching group members for events:', err)
+  } finally {
+    loadingGroupMembers.value = false
+  }
+}
+
+// Watch for event IDs changes to fetch group members
+watch(allEventIds, async (eventIds) => {
+  await fetchGroupMembersForEvents(eventIds)
+}, { immediate: true })
+
+// Computed property for available group options
+const availableGroupOptions = computed(() => {
+  const groups: Array<{ id: string; name: string }> = []
+  groupNamesByGroupId.value.forEach((name, id) => {
+    groups.push({ id, name })
+  })
+  return groups.sort((a, b) => a.name.localeCompare(b.name))
+})
+
+// Helper to get group members for a specific event as array of entries
+// Filters based on selectedGroupFilter if set
+const getGroupMembersForEvent = (eventId: string): Array<[string, string[]]> => {
+  const groupMap = groupMembersByEventId.value.get(eventId) || new Map()
+  
+  // If no filter is selected, return all groups
+  if (!selectedGroupFilter.value) {
+    return Array.from(groupMap.entries())
+  }
+  
+  // Otherwise, only return the selected group if it has members for this event
+  const filteredEntries: Array<[string, string[]]> = []
+  const selectedGroupMembers = groupMap.get(selectedGroupFilter.value)
+  if (selectedGroupMembers && selectedGroupMembers.length > 0) {
+    filteredEntries.push([selectedGroupFilter.value, selectedGroupMembers])
+  }
+  return filteredEntries
+}
+
+// Helper to get group name by group ID
+const getGroupNameById = (groupId: string): string => {
+  return groupNamesByGroupId.value.get(groupId) || `Group ${groupId}`
 }
 
 // Find which event is currently scheduled for each event type
@@ -276,13 +460,55 @@ const handleRemoveEvent = (eventId: string) => {
   gap: 1.5rem;
 }
 
+.course-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .course-title {
   color: var(--color-heading);
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
+}
+
+.group-filter-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-filter-label {
+  color: var(--color-text);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.group-filter-select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  min-width: 150px;
+}
+
+.group-filter-select:hover {
+  border-color: var(--color-heading);
+}
+
+.group-filter-select:focus {
+  outline: none;
+  border-color: hsla(160, 100%, 37%, 1);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
 .btn {
@@ -452,6 +678,10 @@ const handleRemoveEvent = (eventId: string) => {
   opacity: 0.7;
 }
 
+.event-group-members {
+  margin-top: 0.125rem;
+}
+
 @media (max-width: 768px) {
   .events-container {
     grid-template-columns: 1fr !important;
@@ -460,6 +690,21 @@ const handleRemoveEvent = (eventId: string) => {
   
   .course-info {
     max-width: 100%;
+  }
+  
+  .course-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .group-filter-section {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .group-filter-select {
+    flex: 1;
+    min-width: 200px;
   }
 }
 </style>

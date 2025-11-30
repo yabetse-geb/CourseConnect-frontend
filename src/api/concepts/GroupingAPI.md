@@ -565,3 +565,46 @@
 ```
 
 ***
+
+### POST /api/_getMembersInEvents
+
+**Description:** Retrieves a nested mapping from events to groups to users attending those events. This is a sync endpoint.
+
+**Sync:** GetMembersInEvents
+
+**Flow:**
+
+1. Authenticates user via session
+2. For each group in the groups array, gets members
+3. Filters out members who are blocking the requesting user
+4. For each remaining member, gets their schedule
+5. Filters to only events in the requested events array
+6. Builds a nested mapping from event -> group -> users that are attending that event in that group
+7. Returns the nested mapping
+
+**Request Body:**
+
+{
+  "session": "string",
+  "groups": ["string", "string"],
+  "events": ["string", "string"]
+}**Success Response Body (Sync):**
+n
+{
+  "results": {
+    "eventId1": {
+      "groupId1": ["userId1", "userId2"],
+      "groupId2": ["userId3"]
+    },
+    "eventId2": {
+      "groupId1": ["userId4"]
+    }
+  }
+}**Note:** The response is a nested mapping where:
+- Top-level keys are event IDs (as strings)
+- Each event maps to an object where keys are group IDs (as strings)
+- Each group maps to an array of user IDs who are attending that event and are members of that group
+- Users who are blocking the requesting user are excluded
+- Events with no groups having members will have empty objects: `{ "eventId": {} }`
+
+***

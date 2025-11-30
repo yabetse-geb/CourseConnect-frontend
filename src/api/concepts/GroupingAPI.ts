@@ -330,6 +330,44 @@ export async function getAllGroups(): Promise<Group[]> {
   return [];
 }
 
+/**
+ * Result type for getMembersInEvents - nested mapping from events to groups to user IDs
+ * Keys at top level are event IDs (strings)
+ * Values are objects where keys are group IDs (strings) and values are arrays of user IDs (strings)
+ * representing users who are members of that group and attending that event
+ */
+export type MembersInEventsResult = Record<string, Record<string, string[]>>;
+
+/**
+ * Retrieves a nested mapping from events to groups to users attending those events.
+ * Uses sync endpoint: /_getMembersInEvents
+ * Sync: GetMembersInEvents
+ *
+ * Flow:
+ * 1. Authenticates user via session
+ * 2. For each group in the groups array, gets members
+ * 3. Filters out members who are blocking the requesting user
+ * 4. For each remaining member, gets their schedule
+ * 5. Filters to only events in the requested events array
+ * 6. Builds a nested mapping from event -> group -> users that are attending that event in that group
+ * 7. Returns the nested mapping
+ *
+ * @param groups - Array of group IDs to check for member attendance
+ * @param events - Array of event IDs to check for member attendance
+ * @returns Nested mapping: event ID -> group ID -> array of user IDs
+ */
+export async function getMembersInEvents(
+  groups: string[],
+  events: string[]
+): Promise<MembersInEventsResult> {
+  const session = getSessionToken();
+  const response = await apiCall(
+    "/Grouping/_getMembersInEvents",
+    { session, groups, events },
+    "Get Members In Events"
+  );
+  return (response.results ?? response) as MembersInEventsResult;
+}
 
 // Export all functions as a bundle
 export const GroupingAPI = {
@@ -350,4 +388,5 @@ export const GroupingAPI = {
   isGroupAdmin,
   getGroupName,
   getAllGroups,
+  getMembersInEvents,
 };
