@@ -1,192 +1,221 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import WeekCalendar from '../components/WeekCalendar.vue'
-import CourseSearch from '../components/CourseSearch.vue'
-import CourseInfo from '../components/CourseInfo.vue'
-import GroupScheduleList from '../components/GroupScheduleList.vue'
-import type { Course, CourseEvent, EventInfo } from '@/api/concepts/CourseCatalog'
-import { scheduleEvent, unscheduleEvent, getUserSchedule } from '@/api/concepts/SchedulingAPI'
-import { getEventInfo, getAllCourses } from '@/api/concepts/CourseCatalog'
-import { useAuthStore } from '@/stores/auth'
+import { ref, computed, onMounted } from "vue";
+import WeekCalendar from "../components/WeekCalendar.vue";
+import CourseSearch from "../components/CourseSearch.vue";
+import CourseInfo from "../components/CourseInfo.vue";
+import GroupScheduleList from "../components/GroupScheduleList.vue";
+import type {
+  Course,
+  CourseEvent,
+  EventInfo,
+} from "@/api/concepts/CourseCatalog";
+import {
+  scheduleEvent,
+  unscheduleEvent,
+  getUserSchedule,
+} from "@/api/concepts/SchedulingAPI";
+import { getEventInfo, getAllCourses } from "@/api/concepts/CourseCatalog";
+import { useAuthStore } from "@/stores/auth";
 
-const authStore = useAuthStore()
+const authStore = useAuthStore();
 
-const selectedCourse = ref<Course | null>(null)
-const temporaryEvent = ref<{ event: CourseEvent; courseName: string } | null>(null)
+const selectedCourse = ref<Course | null>(null);
+const temporaryEvent = ref<{ event: CourseEvent; courseName: string } | null>(
+  null
+);
 
 // Track scheduled events from backend
-const scheduledEvents = ref<EventInfo[]>([])
+const scheduledEvents = ref<EventInfo[]>([]);
 
 // Track selected friends for schedule comparison (up to 2)
 interface SelectedFriend {
-  id: string
-  username: string
-  schedule: EventInfo[]
+  id: string;
+  username: string;
+  schedule: EventInfo[];
 }
-const selectedFriends = ref<SelectedFriend[]>([])
+const selectedFriends = ref<SelectedFriend[]>([]);
 
 // Computed properties for template
-const selectedFriendIds = computed(() => selectedFriends.value.map(f => f.id))
-const friend1Schedule = computed(() => selectedFriends.value[0]?.schedule || [])
-const friend2Schedule = computed(() => selectedFriends.value[1]?.schedule || [])
+const selectedFriendIds = computed(() =>
+  selectedFriends.value.map((f) => f.id)
+);
+const friend1Schedule = computed(
+  () => selectedFriends.value[0]?.schedule || []
+);
+const friend2Schedule = computed(
+  () => selectedFriends.value[1]?.schedule || []
+);
 
 // Get unique course names from scheduled events for the toggle buttons
 const scheduledCourseNames = computed(() => {
-  const names = new Set<string>()
-  scheduledEvents.value.forEach(event => names.add(event.name))
-  return Array.from(names).sort()
-})
+  const names = new Set<string>();
+  scheduledEvents.value.forEach((event) => names.add(event.name));
+  return Array.from(names).sort();
+});
 
 // Create a Set of scheduled event IDs for efficient lookup
 const scheduledEventIds = computed(() => {
-  return new Set(scheduledEvents.value.map(se => se.event))
-})
+  return new Set(scheduledEvents.value.map((se) => se.event));
+});
 
 // Fetch the user's own schedule from backend
 // This schedule is always displayed in the calendar (green blocks)
 // This is why the current user is filtered out from GroupScheduleList - their schedule is always visible
 const fetchSchedule = async () => {
   try {
-    console.log('Fetching schedule...')
-    const user = authStore.user
+    console.log("Fetching schedule...");
+    const user = authStore.user;
     if (!user) {
-      console.warn('No user found, cannot fetch schedule')
-      scheduledEvents.value = []
-      return
+      console.warn("No user found, cannot fetch schedule");
+      scheduledEvents.value = [];
+      return;
     }
 
     // Get event information from user's schedule (pass session as user parameter)
-    const eventInfo = await getUserSchedule(user)
-    console.log('Fetched schedule from API:', eventInfo)
+    const eventInfo = await getUserSchedule(user);
+    console.log("Fetched schedule from API:", eventInfo);
     // eventInfo is already an array of EventInfo, so use it directly
-    const events: EventInfo[] = eventInfo
-    scheduledEvents.value = events
-    console.log('Updated scheduledEvents.value:', scheduledEvents.value)
+    const events: EventInfo[] = eventInfo;
+    scheduledEvents.value = events;
+    console.log("Updated scheduledEvents.value:", scheduledEvents.value);
   } catch (err) {
-    console.error('Failed to fetch schedule:', err)
-    scheduledEvents.value = []
+    console.error("Failed to fetch schedule:", err);
+    scheduledEvents.value = [];
   }
-}
+};
 
 // Refresh schedule
 const refreshSchedule = async () => {
-  await fetchSchedule()
-}
+  await fetchSchedule();
+};
 
 const handleCourseSelected = (course: Course) => {
-  selectedCourse.value = course
+  selectedCourse.value = course;
   // Clear temporary event when selecting a new course
-  temporaryEvent.value = null
-}
+  temporaryEvent.value = null;
+};
 
 const handleBlockClick = async (courseName: string) => {
   try {
     // Get all courses and find the one matching the name
-    const courses = await getAllCourses()
-    const course = courses.find(c => c.name === courseName)
+    const courses = await getAllCourses();
+    const course = courses.find((c) => c.name === courseName);
     if (course) {
-      selectedCourse.value = course
+      selectedCourse.value = course;
     }
   } catch (err) {
-    console.error('Failed to load course from block click:', err)
+    console.error("Failed to load course from block click:", err);
   }
-}
+};
 
 const handleEventSelected = (event: CourseEvent, courseName: string) => {
   // Replace temporary event with the newly clicked one
-  temporaryEvent.value = { event, courseName }
-}
+  temporaryEvent.value = { event, courseName };
+};
 
 const handleAddEvent = async (eventId: string) => {
-  console.log('handleAddEvent called with eventId:', eventId)
+  console.log("handleAddEvent called with eventId:", eventId);
   try {
-    console.log('Calling scheduleEvent API...')
-    await scheduleEvent(eventId)
-    console.log('scheduleEvent API call successful')
+    console.log("Calling scheduleEvent API...");
+    await scheduleEvent(eventId);
+    console.log("scheduleEvent API call successful");
     // Refresh schedule after adding
-    await refreshSchedule()
+    await refreshSchedule();
   } catch (err) {
-    console.error('Failed to add event to schedule:', err)
+    console.error("Failed to add event to schedule:", err);
     // Still refresh to get current state
-    await refreshSchedule()
+    await refreshSchedule();
   }
-}
+};
 
 const handleRemoveEvent = async (eventId: string) => {
   try {
-    console.log('Removing event:', eventId)
-    console.log('Current scheduled events before removal:', scheduledEvents.value)
-    await unscheduleEvent(eventId)
-    console.log('unscheduleEvent API call successful')
+    console.log("Removing event:", eventId);
+    console.log(
+      "Current scheduled events before removal:",
+      scheduledEvents.value
+    );
+    await unscheduleEvent(eventId);
+    console.log("unscheduleEvent API call successful");
     // Refresh schedule after removing
-    await refreshSchedule()
-    console.log('Schedule refreshed, new scheduled events:', scheduledEvents.value)
+    await refreshSchedule();
+    console.log(
+      "Schedule refreshed, new scheduled events:",
+      scheduledEvents.value
+    );
   } catch (err) {
-    console.error('Failed to remove event from schedule:', err)
+    console.error("Failed to remove event from schedule:", err);
     // Still refresh to get current state
-    await refreshSchedule()
+    await refreshSchedule();
   }
-}
+};
 
-const handleFriendSelected = async (friendId: string, friendUsername: string) => {
+const handleFriendSelected = async (
+  friendId: string,
+  friendUsername: string
+) => {
   // Check if already selected
-  if (selectedFriends.value.some(f => f.id === friendId)) {
-    return
+  if (selectedFriends.value.some((f) => f.id === friendId)) {
+    return;
   }
-  
+
   // Limit to 2 friends
   if (selectedFriends.value.length >= 2) {
     // Remove the first one to make room
-    selectedFriends.value.shift()
+    selectedFriends.value.shift();
   }
-  
+
   try {
-    const friendEvents = await getUserSchedule(friendId)
+    const friendEvents = await getUserSchedule(friendId);
     selectedFriends.value.push({
       id: friendId,
       username: friendUsername,
-      schedule: friendEvents
-    })
-    console.log('Fetched friend schedule:', friendEvents)
+      schedule: friendEvents,
+    });
+    console.log("Fetched friend schedule:", friendEvents);
   } catch (err) {
-    console.error('Failed to fetch friend schedule:', err)
+    console.error("Failed to fetch friend schedule:", err);
   }
-}
+};
 
 const handleFriendDeselected = (friendId: string) => {
-  selectedFriends.value = selectedFriends.value.filter(f => f.id !== friendId)
-}
+  selectedFriends.value = selectedFriends.value.filter(
+    (f) => f.id !== friendId
+  );
+};
 
 const clearAllFriends = () => {
-  selectedFriends.value = []
-}
+  selectedFriends.value = [];
+};
 
 const handleShowCourse = (courseName: string) => {
   // This function was used to show hidden courses, but hiding is no longer supported
-  console.log('Show course:', courseName)
-}
+  console.log("Show course:", courseName);
+};
 
 // Fetch schedule on mount
 onMounted(() => {
-  fetchSchedule()
-})
-
+  fetchSchedule();
+});
 </script>
 
 <template>
   <div class="scheduling-view">
     <div class="schedule-row">
       <div class="friends-column">
-        <GroupScheduleList 
-          :session="authStore.session" 
+        <GroupScheduleList
+          :session="authStore.session"
           :selected-friend-ids="selectedFriendIds"
           @friend-selected="handleFriendSelected"
           @friend-deselected="handleFriendDeselected"
         />
       </div>
       <div class="calendar-container">
-        <div v-if="scheduledCourseNames.length > 0" class="course-toggle-buttons">
-          <button 
+        <div
+          v-if="scheduledCourseNames.length > 0"
+          class="course-toggle-buttons"
+        >
+          <button
             v-for="courseName in scheduledCourseNames"
             :key="courseName"
             @click="handleShowCourse(courseName)"
@@ -197,21 +226,40 @@ onMounted(() => {
         </div>
         <div class="comparison-header">
           <div class="legend">
-            <span class="legend-item"><span class="legend-color user-color"></span> Your schedule</span>
-            <span v-if="selectedFriends[0]" class="legend-item"><span class="legend-color friend1-color"></span> {{ selectedFriends[0].username }}</span>
-            <span v-if="selectedFriends[1]" class="legend-item"><span class="legend-color friend2-color"></span> {{ selectedFriends[1].username }}</span>
+            <span class="legend-item"
+              ><span class="legend-color user-color"></span> Your schedule</span
+            >
+            <span v-if="selectedFriends[0]" class="legend-item"
+              ><span class="legend-color friend1-color"></span>
+              {{ selectedFriends[0].username }}</span
+            >
+            <span v-if="selectedFriends[1]" class="legend-item"
+              ><span class="legend-color friend2-color"></span>
+              {{ selectedFriends[1].username }}</span
+            >
           </div>
           <div v-if="selectedFriends.length > 0" class="comparison-info">
-            Comparing with: 
-            <strong v-for="(friend, index) in selectedFriends" :key="friend.id" :class="`friend-name-${index + 1}`">
-              {{ friend.username }}<span v-if="index < selectedFriends.length - 1">, </span>
+            Comparing with:
+            <strong
+              v-for="(friend, index) in selectedFriends"
+              :key="friend.id"
+              :class="`friend-name-${index + 1}`"
+            >
+              {{ friend.username
+              }}<span v-if="index < selectedFriends.length - 1">, </span>
             </strong>
           </div>
-          <button v-if="selectedFriends.length > 0" class="clear-comparison-btn" @click="clearAllFriends">Clear All</button>
+          <button
+            v-if="selectedFriends.length > 0"
+            class="clear-comparison-btn"
+            @click="clearAllFriends"
+          >
+            Clear All
+          </button>
         </div>
         <!-- User's own schedule (always displayed as green blocks) -->
         <!-- This is why the current user is filtered out from GroupScheduleList -->
-        <WeekCalendar 
+        <WeekCalendar
           :scheduled-events="scheduledEvents"
           :friend1-events="friend1Schedule"
           :friend2-events="friend2Schedule"
@@ -224,8 +272,8 @@ onMounted(() => {
         <CourseSearch @course-selected="handleCourseSelected" />
       </div>
       <div class="right-column">
-        <CourseInfo 
-          :course="selectedCourse" 
+        <CourseInfo
+          :course="selectedCourse"
           :scheduled-event-ids="scheduledEventIds"
           @event-selected="handleEventSelected"
           @add-event="handleAddEvent"
@@ -249,8 +297,6 @@ onMounted(() => {
   display: flex;
   gap: 1.5rem;
   width: 100%;
-  max-height: 50vh;
-  overflow: hidden;
   flex-shrink: 0;
 }
 
@@ -426,4 +472,3 @@ onMounted(() => {
   }
 }
 </style>
-

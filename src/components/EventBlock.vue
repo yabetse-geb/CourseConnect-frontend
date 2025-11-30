@@ -11,52 +11,52 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
 interface Props {
-  code: string
-  type: string
-  courseName: string
-  eventId: string
-  startTime: number // in hours (e.g., 9.5 for 9:30 AM)
-  duration: number // in hours
-  color: 'red' | 'green' | 'pink' | 'gray' | 'blue'
-  startHour?: number // First hour in the grid (default: 8)
-  hourHeight?: number // Height of each hour slot in pixels (default: 60)
-  columnIndex?: number // For side-by-side display of overlapping events
-  totalColumns?: number // Total number of overlapping events
+  code: string;
+  type: string;
+  courseName: string;
+  eventId: string;
+  startTime: number; // in hours (e.g., 9.5 for 9:30 AM)
+  duration: number; // in hours
+  color: "red" | "green" | "pink" | "gray" | "blue";
+  startHour?: number; // First hour in the grid (default: 8)
+  hourHeight?: number; // Height of each hour slot in pixels (default: 60)
+  columnIndex?: number; // For side-by-side display of overlapping events
+  totalColumns?: number; // Total number of overlapping events
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  startHour: 5,
+  startHour: 8,
   hourHeight: 50,
   columnIndex: 0,
-  totalColumns: 1
-})
+  totalColumns: 1,
+});
 
 const emit = defineEmits<{
-  (e: 'block-clicked', courseName: string): void
-}>()
+  (e: "block-clicked", courseName: string): void;
+}>();
 
 const blockStyle = computed(() => {
-  const top = (props.startTime - props.startHour) * props.hourHeight
-  const height = props.duration * props.hourHeight
-  
+  const top = (props.startTime - props.startHour) * props.hourHeight;
+  const height = props.duration * props.hourHeight;
+
   // Calculate width and left position for side-by-side display
-  const widthPercent = 100 / props.totalColumns
-  const leftPercent = props.columnIndex * widthPercent
-  
+  const widthPercent = 100 / props.totalColumns;
+  const leftPercent = props.columnIndex * widthPercent;
+
   return {
     top: `${top}px`,
     height: `${height}px`,
     left: `calc(${leftPercent}% + 2px)`,
-    width: `calc(${widthPercent}% - 4px)`
-  }
-})
+    width: `calc(${widthPercent}% - 4px)`,
+  };
+});
 
 const handleClick = () => {
-  emit('block-clicked', props.courseName)
-}
+  emit("block-clicked", props.courseName);
+};
 </script>
 
 <style scoped>
