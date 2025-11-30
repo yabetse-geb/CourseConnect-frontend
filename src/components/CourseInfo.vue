@@ -7,56 +7,22 @@
     <div v-else class="course-details">
       <h2 class="course-title">{{ course.name }}</h2>
       
-      <div class="events-container">
-        <div class="events-column">
-          <h3 class="events-header">Lectures</h3>
-          <div v-if="lectureEvents.length === 0" class="no-events">
-            <p>No lectures scheduled</p>
+      <div 
+        class="events-container" 
+        :style="{ '--grid-columns': eventTypeColumns.length, gridTemplateColumns: `repeat(${eventTypeColumns.length}, minmax(150px, 1fr))` }"
+      >
+        <div 
+          v-for="column in eventTypeColumns" 
+          :key="column.type"
+          class="events-column"
+        >
+          <h3 class="events-header">{{ column.label }}</h3>
+          <div v-if="column.events.length === 0" class="no-events">
+            <p>No {{ column.label.toLowerCase() }} scheduled</p>
           </div>
           <ul v-else class="events-list">
             <li 
-              v-for="event in lectureEvents" 
-              :key="event.event" 
-              :class="['event-item', { 'event-scheduled': isEventScheduled(event.event) }]"
-              @click="handleEventClick(event)"
-            >
-              <div class="radio-button" :class="{ 'radio-selected': isEventScheduled(event.event) }"></div>
-              <div class="event-content">
-                <div class="event-days">{{ formatDays(event.times.days) }}</div>
-                <div class="event-time">{{ formatTimeRange(event.times.startTime, event.times.endTime) }}</div>
-                <div v-if="loadingFriends" class="event-friends">
-                  Loading friends...
-                </div>
-                <div v-else class="event-friends">
-                  <span v-if="getFriendsForEvent(event.event).length > 0">
-                    {{ getFriendsForEvent(event.event).length }} {{ getFriendsForEvent(event.event).length === 1 ? 'friend' : 'friends' }}: {{ getFriendsForEvent(event.event).join(', ') }}
-                  </span>
-                  <span v-else class="no-friends">
-                    No friends enrolled
-                  </span>
-                </div>
-              </div>
-              <div class="event-actions" @click.stop>
-                <button 
-                  v-if="isEventScheduled(event.event)"
-                  @click.stop="handleRemoveEvent(event.event)"
-                  class="btn btn-remove btn-small"
-                >
-                  Remove
-                </button>
-              </div>
-            </li>
-          </ul>
-        </div>
-        
-        <div class="events-column">
-          <h3 class="events-header">Recitations</h3>
-          <div v-if="recitationEvents.length === 0" class="no-events">
-            <p>No recitations scheduled</p>
-          </div>
-          <ul v-else class="events-list">
-            <li 
-              v-for="event in recitationEvents" 
+              v-for="event in column.events" 
               :key="event.event" 
               :class="['event-item', { 'event-scheduled': isEventScheduled(event.event) }]"
               @click="handleEventClick(event)"
@@ -110,19 +76,33 @@ const emit = defineEmits<{
   (e: 'remove-event', eventId: string): void
 }>()
 
-// Filter events by type
-const lectureEvents = computed(() => {
-  if (!props.course) return []
-  return props.course.events.filter(event => 
-    event.type.toLowerCase().includes('lecture')
-  )
-})
+// Event type configuration with fixed order
+const eventTypeConfigs = [
+  { type: 'lecture', label: 'Lectures', keywords: ['lecture'] },
+  { type: 'recitation', label: 'Recitations', keywords: ['recitation'] },
+  { type: 'lab', label: 'Labs', keywords: ['lab', 'laboratory'] },
+  { type: 'design', label: 'Design', keywords: ['design'] },
+]
 
-const recitationEvents = computed(() => {
+// Helper function to check if an event matches a type
+const matchesEventType = (event: CourseEvent, keywords: string[]): boolean => {
+  const eventTypeLower = event.type.toLowerCase()
+  return keywords.some(keyword => eventTypeLower.includes(keyword))
+}
+
+// Create dynamic columns based on what event types exist
+const eventTypeColumns = computed(() => {
   if (!props.course) return []
-  return props.course.events.filter(event => 
-    event.type.toLowerCase().includes('recitation')
-  )
+  
+  return eventTypeConfigs
+    .map(config => ({
+      type: config.type,
+      label: config.label,
+      events: props.course!.events.filter(event => 
+        matchesEventType(event, config.keywords)
+      )
+    }))
+    .filter(column => column.events.length > 0) // Only include columns with events
 })
 
 // Get all event IDs from the course (lectures + recitations)
@@ -176,22 +156,31 @@ const getFriendsForEvent = (eventId: string): string[] => {
   return friendsByEventId.value.get(eventId) || []
 }
 
-// Find which lecture/recitation is currently scheduled for this course
-const scheduledLectureId = computed(() => {
-  if (!props.course || !props.scheduledEventIds) return null
-  const scheduled = lectureEvents.value.find(event => 
-    props.scheduledEventIds?.has(event.event)
-  )
-  return scheduled?.event ?? null
+// Find which event is currently scheduled for each event type
+const scheduledEventsByType = computed(() => {
+  if (!props.course || !props.scheduledEventIds) return new Map<string, string>()
+  
+  const scheduledMap = new Map<string, string>()
+  
+  eventTypeConfigs.forEach(config => {
+    const matchingEvents = props.course!.events.filter(event => 
+      matchesEventType(event, config.keywords)
+    )
+    const scheduled = matchingEvents.find(event => 
+      props.scheduledEventIds?.has(event.event)
+    )
+    if (scheduled) {
+      scheduledMap.set(config.type, scheduled.event)
+    }
+  })
+  
+  return scheduledMap
 })
 
-const scheduledRecitationId = computed(() => {
-  if (!props.course || !props.scheduledEventIds) return null
-  const scheduled = recitationEvents.value.find(event => 
-    props.scheduledEventIds?.has(event.event)
-  )
-  return scheduled?.event ?? null
-})
+// Helper function to get scheduled event ID for a given event type
+const getScheduledEventId = (eventType: string): string | null => {
+  return scheduledEventsByType.value.get(eventType) ?? null
+}
 
 // Helper functions for formatting
 const formatDays = (days: string[]): string => {
@@ -218,11 +207,14 @@ const handleEventClick = (event: CourseEvent) => {
     return
   }
   
-  const isLecture = event.type.toLowerCase().includes('lecture')
-  const isRecitation = event.type.toLowerCase().includes('recitation')
+  // Determine which event type this event belongs to
+  const eventType = eventTypeConfigs.find(config => 
+    matchesEventType(event, config.keywords)
+  )?.type
+  
   const isCurrentlyScheduled = isEventScheduled(event.event)
   
-  console.log('Event details:', { isLecture, isRecitation, isCurrentlyScheduled, eventId: event.event })
+  console.log('Event details:', { eventType, isCurrentlyScheduled, eventId: event.event })
   
   // Emit event-selected for calendar preview
   emit('event-selected', event, props.course.name)
@@ -234,15 +226,14 @@ const handleEventClick = (event: CourseEvent) => {
   }
   
   // If not scheduled, automatically add it
-  // But first, remove any existing lecture/recitation of the same type
-  if (isLecture && scheduledLectureId.value && scheduledLectureId.value !== event.event) {
-    // Remove the currently scheduled lecture
-    console.log('Removing existing lecture:', scheduledLectureId.value)
-    emit('remove-event', scheduledLectureId.value)
-  } else if (isRecitation && scheduledRecitationId.value && scheduledRecitationId.value !== event.event) {
-    // Remove the currently scheduled recitation
-    console.log('Removing existing recitation:', scheduledRecitationId.value)
-    emit('remove-event', scheduledRecitationId.value)
+  // But first, remove any existing event of the same type (mutual exclusivity)
+  if (eventType) {
+    const existingScheduledId = getScheduledEventId(eventType)
+    if (existingScheduledId && existingScheduledId !== event.event) {
+      // Remove the currently scheduled event of the same type
+      console.log(`Removing existing ${eventType}:`, existingScheduledId)
+      emit('remove-event', existingScheduledId)
+    }
   }
   
   // Add the new event
@@ -262,7 +253,6 @@ const handleRemoveEvent = (eventId: string) => {
 <style scoped>
 .course-info {
   width: 100%;
-  max-width: 600px;
   margin: 0 auto;
   padding: 1.5rem;
   background-color: var(--color-background-soft);
@@ -338,8 +328,8 @@ const handleRemoveEvent = (eventId: string) => {
 
 .events-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 2rem;
+  overflow-x: auto;
 }
 
 .events-column {
@@ -464,7 +454,7 @@ const handleRemoveEvent = (eventId: string) => {
 
 @media (max-width: 768px) {
   .events-container {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 1.5rem;
   }
   
