@@ -5,8 +5,8 @@
     :style="blockStyle"
     @click="handleClick"
   >
-    <div class="block-code">{{ code }}</div>
-    <div class="block-type">{{ type }}</div>
+    <div class="block-code">{{ displayCode }}</div>
+    <div class="block-type">{{ displayType }}</div>
   </div>
 </template>
 
@@ -37,6 +37,16 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: "block-clicked", courseName: string): void;
 }>();
+
+const displayCode = computed(() => {
+  const colonIndex = props.code.indexOf(':')
+  return colonIndex !== -1 ? props.code.substring(0, colonIndex) : props.code
+})
+
+const displayType = computed(() => {
+  const colonIndex = props.type.indexOf(':')
+  return colonIndex !== -1 ? props.type.substring(0, colonIndex) : props.type
+})
 
 const blockStyle = computed(() => {
   const top = (props.startTime - props.startHour) * props.hourHeight;

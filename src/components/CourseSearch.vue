@@ -12,7 +12,16 @@
       </div>
       <!-- Future filters area - ready for expansion -->
       <div class="filters-area">
-        <!-- Additional filters (units, lab, humanities, etc.) will go here -->
+        <div class="filter-buttons">
+          <button
+            v-for="tag in filterTags"
+            :key="tag"
+            :class="['filter-btn', { active: filters.selectedTags.includes(tag) }]"
+            @click="toggleTag(tag)"
+          >
+            {{ tag }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -72,6 +81,9 @@ import { getAllCourses, type Course } from '@/api/concepts/CourseCatalog'
 
 const PAGE_SIZE = 5
 
+// Filter tags
+const filterTags = ['HASS', 'CI-M', 'CI-H']
+
 // Emits
 const emit = defineEmits<{
   (e: 'course-selected', course: Course): void
@@ -84,19 +96,30 @@ const error = ref<string | null>(null)
 
 // Filters object - extensible for future filters
 const filters = reactive({
-  searchQuery: ''
+  searchQuery: '',
+  selectedTags: [] as string[]
 })
 
 // Computed property for filtered courses
 const filteredCourses = computed(() => {
-  if (!filters.searchQuery.trim()) {
-    return [...courses.value].sort((a, b) => a.name.localeCompare(b.name))
+  let filtered = courses.value
+
+  // Filter by tags
+  if (filters.selectedTags.length > 0) {
+    filtered = filtered.filter(course => {
+      // Use the tags array from the course object
+      const courseTags = course.tags || []
+      return filters.selectedTags.every(tag => courseTags.includes(tag))
+    })
   }
 
-  const query = filters.searchQuery.toLowerCase().trim()
-  return courses.value
-    .filter(course => course.name.toLowerCase().includes(query))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  // Filter by search query
+  if (filters.searchQuery.trim()) {
+    const query = filters.searchQuery.toLowerCase().trim()
+    filtered = filtered.filter(course => course.name.toLowerCase().includes(query))
+  }
+
+  return [...filtered].sort((a, b) => a.name.localeCompare(b.name))
 })
 
 const visibleStart = ref(0)
@@ -125,6 +148,14 @@ watch(
   () => {
     visibleStart.value = 0
   }
+)
+
+watch(
+  () => filters.selectedTags,
+  () => {
+    visibleStart.value = 0
+  },
+  { deep: true }
 )
 
 watch(filteredCourses, newList => {
@@ -157,6 +188,15 @@ const handleSearch = () => {
 
 const handleCourseClick = (course: Course) => {
   emit('course-selected', course)
+}
+
+const toggleTag = (tag: string) => {
+  const index = filters.selectedTags.indexOf(tag)
+  if (index === -1) {
+    filters.selectedTags.push(tag)
+  } else {
+    filters.selectedTags.splice(index, 1)
+  }
 }
 
 // Lifecycle
@@ -204,6 +244,35 @@ onMounted(() => {
 .filters-area {
   /* Reserved for future filters */
   min-height: 0;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-background-soft);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background-color: var(--color-background);
+  border-color: hsla(160, 100%, 37%, 0.5);
+}
+
+.filter-btn.active {
+  background-color: hsla(160, 100%, 37%, 1);
+  color: white;
+  border-color: hsla(160, 100%, 37%, 1);
 }
 
 .loading-state,

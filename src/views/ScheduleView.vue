@@ -221,7 +221,7 @@ onMounted(() => {
             @click="handleShowCourse(courseName)"
             class="course-toggle-btn"
           >
-            {{ courseName }}
+            {{ courseName.split(':')[0] }}
           </button>
         </div>
         <div class="comparison-header">

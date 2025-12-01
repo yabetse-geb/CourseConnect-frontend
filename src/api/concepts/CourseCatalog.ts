@@ -23,11 +23,13 @@ export interface CourseEvent extends CourseEventInput {
 export interface Course {
   course: string;
   name: string;
+  tags: string[];
   events: CourseEvent[];
 }
 
 export interface CourseInfo {
   name: string;
+  tags: string[];
   events: CourseEvent[];
 }
 
@@ -45,11 +47,12 @@ export interface EventInfo {
  * - For each meeting time provided, startTime must be less than endTime
  * - A course with the given name must not already exist
  * @param name - The name of the course
+ * @param tags - Array of tags (e.g., ["HASS", "CI-M"])
  * @param events - Array of course event information (type and times)
  * @returns Object containing the ID of the newly created course
  */
-export async function defineCourse(name: string, events: CourseEventInput[]): Promise<{ course: string }> {
-  return (await apiCall('/CourseCatalog/defineCourse', { name, events }, 'Define Course')) as { course: string };
+export async function defineCourse(name: string, tags: string[], events: CourseEventInput[]): Promise<{ course: string }> {
+  return (await apiCall('/CourseCatalog/defineCourse', { name, tags, events }, 'Define Course')) as { course: string };
 }
 
 /**

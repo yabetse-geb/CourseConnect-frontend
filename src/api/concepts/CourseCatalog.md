@@ -2,6 +2,9 @@
 
 **Purpose:** Track the courses offered in a school with all of the information for each course regarding times, class types, name.
 
+**Types:**
+- `Tag`: one of "HASS", "CI-M", "CI-H"
+
 ---
 
 ## API Endpoints
@@ -23,6 +26,7 @@
 ```json
 {
   "name": "string",
+  "tags": ["string"],
   "events": [
     {
       "type": "string",
@@ -101,6 +105,7 @@
   {
     "course": "ID",
     "name": "string",
+    "tags": ["string"],
     "events": [
       {
         "event": "ID",
@@ -145,6 +150,7 @@
 [
   {
     "name": "string",
+    "tags": ["string"],
     "events": [
       {
         "event": "ID",
