@@ -25,6 +25,10 @@
           </select>
         </div>
       </div>
+
+      <div v-if="course.info" class="course-description">
+        <div v-html="formatCourseInfo(course.info)"></div>
+      </div>
       
       <div 
         class="events-container" 
@@ -432,6 +436,17 @@ const isEventScheduled = (eventId: string): boolean => {
 const handleRemoveEvent = (eventId: string) => {
   emit('remove-event', eventId)
 }
+
+const formatCourseInfo = (info: string): string => {
+  // Add line break before "In-charge:" or "Instructor(s):" to put them on a new line
+  let formatted = info.replace(/(In-charge:|Instructor\(s\):)/gi, '<br><br>$1')
+  
+  // Add line break after instructor line (after period following instructor name)
+  // This targets the period after the instructor's name
+  formatted = formatted.replace(/((?:In-charge:|Instructor\(s\):)[^.]+\.)/, '$1<br><br>')
+  
+  return formatted
+}
 </script>
 
 <style scoped>
@@ -509,6 +524,16 @@ const handleRemoveEvent = (eventId: string) => {
   outline: none;
   border-color: hsla(160, 100%, 37%, 1);
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.course-description {
+  padding: 1rem;
+  background-color: var(--color-background-soft);
+  border-radius: 6px;
+  color: var(--color-text);
+  line-height: 1.6;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
 }
 
 .btn {

@@ -27,6 +27,7 @@
 {
   "name": "string",
   "tags": ["string"],
+  "info": "string",
   "events": [
     {
       "type": "string",
@@ -106,6 +107,7 @@
     "course": "ID",
     "name": "string",
     "tags": ["string"],
+    "info": "string",
     "events": [
       {
         "event": "ID",
@@ -151,6 +153,7 @@
   {
     "name": "string",
     "tags": ["string"],
+    "info": "string",
     "events": [
       {
         "event": "ID",
