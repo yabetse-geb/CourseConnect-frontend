@@ -7,22 +7,61 @@
     <div v-else class="course-details">
       <div class="course-header">
         <h2 class="course-title">{{ course.name }}</h2>
-        <div class="group-filter-section">
-          <label for="group-filter" class="group-filter-label">Show members of group:</label>
-          <select 
-            id="group-filter"
-            v-model="selectedGroupFilter" 
-            class="group-filter-select"
-          >
-            <option :value="null">All</option>
-            <option 
-              v-for="group in availableGroupOptions" 
-              :key="group.id" 
-              :value="group.id"
+        <div class="course-header-controls">
+          <div class="preference-section">
+            <label class="preference-label">Interest level:</label>
+            <div class="preference-buttons">
+              <button
+                @click="handlePreferenceChange(2)"
+                :class="['preference-btn', 'preference-likely', { 'preference-selected': currentPreference === 2 }]"
+                title="Likely taking it"
+              >
+                <span class="preference-circle preference-circle-green"></span>
+                Likely
+              </button>
+              <button
+                @click="handlePreferenceChange(1)"
+                :class="['preference-btn', 'preference-maybe', { 'preference-selected': currentPreference === 1 }]"
+                title="Maybe taking it"
+              >
+                <span class="preference-circle preference-circle-yellow"></span>
+                Maybe
+              </button>
+              <button
+                @click="handlePreferenceChange(0)"
+                :class="['preference-btn', 'preference-unlikely', { 'preference-selected': currentPreference === 0 }]"
+                title="Not likely taking it"
+              >
+                <span class="preference-circle preference-circle-red"></span>
+                Not likely
+              </button>
+              <button
+                v-if="currentPreference !== null"
+                @click="handlePreferenceClear"
+                class="preference-btn preference-clear"
+                title="Clear preference"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+          <div class="group-filter-section">
+            <label for="group-filter" class="group-filter-label">Show members of group:</label>
+            <select 
+              id="group-filter"
+              v-model="selectedGroupFilter" 
+              class="group-filter-select"
             >
-              {{ group.name }}
-            </option>
-          </select>
+              <option :value="null">All</option>
+              <option 
+                v-for="group in availableGroupOptions" 
+                :key="group.id" 
+                :value="group.id"
+              >
+                {{ group.name }}
+              </option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -99,22 +138,61 @@ import type { Course, CourseEvent } from '@/api/concepts/CourseCatalog'
 import { getEventFriends, type EventFriendsResult } from '@/api/syncs/friendsInEvents'
 import { getUserGroups, getMembersInEvents, getGroupName } from '@/api/concepts/GroupingAPI'
 import { getUsername } from '@/api/syncs/auth'
+import { addScore, removeScore } from '@/api/concepts/PreferencingAPI'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   course: Course | null
   scheduledEventIds?: Set<string>
+  currentPreference?: number | null // Current preference for this course
 }>()
 
 const emit = defineEmits<{
   (e: 'event-selected', event: CourseEvent, courseName: string): void
   (e: 'add-event', eventId: string): void
   (e: 'remove-event', eventId: string): void
+  (e: 'preference-changed', courseId: string, score: number): void
+  (e: 'preference-cleared', courseId: string): void
 }>()
 
-// Get current user ID from auth store
+// Get current session from auth store
 const authStore = useAuthStore()
+const currentSession = computed(() => authStore.session)
 const currentUserId = computed(() => authStore.user)
+
+// Extract course code from full course name (e.g., "8.02: Physics II" -> "8.02")
+const getCourseCode = (courseName: string): string => {
+  const colonIndex = courseName.indexOf(':');
+  return colonIndex >= 0 ? courseName.substring(0, colonIndex).trim() : courseName;
+};
+
+// Handle preference change
+const handlePreferenceChange = async (score: number) => {
+  if (!props.course || !currentSession.value) return;
+  
+  const courseId = props.course.course; // Use course ID, not course code
+  
+  try {
+    await addScore(currentSession.value, courseId, score);
+    emit('preference-changed', courseId, score);
+  } catch (error) {
+    console.error('Failed to set course preference:', error);
+  }
+};
+
+// Handle preference clear
+const handlePreferenceClear = async () => {
+  if (!props.course || !currentSession.value) return;
+  
+  const courseId = props.course.course; // Use course ID, not course code
+  
+  try {
+    await removeScore(currentSession.value, courseId);
+    emit('preference-cleared', courseId);
+  } catch (error) {
+    console.error('Failed to clear course preference:', error);
+  }
+};
 
 // Event type configuration with fixed order
 const eventTypeConfigs = [
@@ -441,9 +519,8 @@ const formatCourseInfo = (info: string): string => {
   // Add line break before "In-charge:" or "Instructor(s):" to put them on a new line
   let formatted = info.replace(/(In-charge:|Instructor\(s\):)/gi, '<br><br>$1')
   
-  // Add line break after instructor line (after period following instructor name)
-  // This targets the period after the instructor's name
-  formatted = formatted.replace(/((?:In-charge:|Instructor\(s\):)[^.]+\.)/, '$1<br><br>')
+  // Add line break before "Links:" to put links on a new line
+  formatted = formatted.replace(/(Links:)/gi, '<br><br>$1')
   
   return formatted
 }
@@ -478,11 +555,18 @@ const formatCourseInfo = (info: string): string => {
 .course-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--color-border);
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+.course-header-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
 }
 
 .course-title {
@@ -490,6 +574,79 @@ const formatCourseInfo = (info: string): string => {
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
+}
+
+.preference-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.preference-label {
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.preference-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.preference-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: 2px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.preference-btn:hover {
+  border-color: var(--color-heading);
+  transform: translateY(-1px);
+}
+
+.preference-btn.preference-selected {
+  border-color: hsla(160, 100%, 37%, 1);
+  background-color: rgba(76, 175, 80, 0.1);
+  font-weight: 600;
+}
+
+.preference-circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.preference-circle-green {
+  background-color: #66bb6a;
+}
+
+.preference-circle-yellow {
+  background-color: #fdd835;
+}
+
+.preference-circle-red {
+  background-color: #e57373;
+}
+
+.preference-clear {
+  color: var(--color-text-soft);
+}
+
+.preference-clear:hover {
+  color: var(--color-text);
+  border-color: #e57373;
 }
 
 .group-filter-section {

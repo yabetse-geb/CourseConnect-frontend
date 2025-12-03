@@ -5,6 +5,7 @@
     :style="blockStyle"
     @click="handleClick"
   >
+    <div v-if="preferenceColor" class="preference-indicator" :style="{ backgroundColor: preferenceColor }"></div>
     <div class="block-code">{{ displayCode }}</div>
     <div class="block-type">{{ displayType }}</div>
   </div>
@@ -21,6 +22,7 @@ interface Props {
   startTime: number; // in hours (e.g., 9.5 for 9:30 AM)
   duration: number; // in hours
   color: "red" | "green" | "pink" | "gray" | "blue";
+  preference?: number; // 0=not likely (red), 1=maybe (yellow), 2=likely (green)
   startHour?: number; // First hour in the grid (default: 8)
   hourHeight?: number; // Height of each hour slot in pixels (default: 60)
   columnIndex?: number; // For side-by-side display of overlapping events
@@ -46,6 +48,14 @@ const displayCode = computed(() => {
 const displayType = computed(() => {
   const colonIndex = props.type.indexOf(':')
   return colonIndex !== -1 ? props.type.substring(0, colonIndex) : props.type
+})
+
+const preferenceColor = computed(() => {
+  if (props.preference === undefined) return null;
+  if (props.preference === 0) return '#e57373'; // red - not likely
+  if (props.preference === 1) return '#fdd835'; // yellow - maybe
+  if (props.preference === 2) return '#66bb6a'; // green - likely
+  return null;
 })
 
 const blockStyle = computed(() => {
@@ -84,6 +94,18 @@ const handleClick = () => {
 .class-block:hover {
   transform: scale(1.02);
   z-index: 10;
+}
+
+.preference-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  z-index: 5;
 }
 
 .block-code {

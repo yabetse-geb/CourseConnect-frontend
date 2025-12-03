@@ -145,6 +145,49 @@
 }
 ```
 ---
+### POST /api/Scheduling/_getScheduleCourses
+
+**Description:** Retrieves unique course information from a user's schedule.
+
+**Requirements:**
+- The `targetUser` has a schedule.
+
+**Effects:**
+- Returns a deduplicated set of courses with their details (course ID, name, tags, info) from the user's schedule.
+
+**Request Body:**
+```json
+{
+  "targetUser": "string",
+  "session": "string"
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "course": "string",
+    "name": "string",
+    "tags": ["string"],
+    "info": "string"
+  },
+  {
+    "course": "string",
+    "name": "string",
+    "tags": ["string"],
+    "info": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+---
 ### POST /api/Scheduling/_getScheduleComparison
 
 **Description:** Returns the common event IDs between the schedules of two users.

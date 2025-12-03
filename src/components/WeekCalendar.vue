@@ -31,6 +31,7 @@
             :start-time="block.startTime"
             :duration="block.duration"
             :color="block.color"
+            :preference="block.preference"
             :start-hour="hours[0]"
             :column-index="block.columnIndex"
             :total-columns="block.totalColumns"
@@ -46,6 +47,7 @@
 import { computed } from "vue";
 import EventBlock from "./EventBlock.vue";
 import type { EventInfo } from "@/api/concepts/CourseCatalog";
+import type { EventInfoWithScore } from "@/api/concepts/SchedulingAPI";
 
 interface ClassBlock {
   id: string;
@@ -57,6 +59,7 @@ interface ClassBlock {
   startTime: number; // in hours (e.g., 9.5 for 9:30 AM)
   duration: number; // in hours
   color: "red" | "green" | "pink" | "gray" | "blue";
+  preference?: number; // 0=not likely (red), 1=maybe (yellow), 2=likely (green)
 }
 
 interface ClassBlockWithLayout extends ClassBlock {
@@ -66,8 +69,9 @@ interface ClassBlockWithLayout extends ClassBlock {
 
 const props = defineProps<{
   scheduledEvents: EventInfo[];
-  friend1Events?: EventInfo[];
-  friend2Events?: EventInfo[];
+  friend1Events?: EventInfoWithScore[];
+  friend2Events?: EventInfoWithScore[];
+  coursePreferences?: Map<string, number>; // Map of courseId to preference score (0=not likely, 1=maybe, 2=likely)
 }>();
 
 const emit = defineEmits<{
@@ -104,6 +108,12 @@ const calculateDuration = (startTime: string, endTime: string): number => {
   return timeToHours(endTime) - timeToHours(startTime);
 };
 
+// Get preference for a course by its name
+const getPreference = (courseName: string): number | undefined => {
+  if (!props.coursePreferences) return undefined;
+  return props.coursePreferences.get(courseName);
+};
+
 // Convert scheduled events to schedule blocks
 const scheduledBlocks = computed<ClassBlock[]>(() => {
   if (!props.scheduledEvents || props.scheduledEvents.length === 0) return [];
@@ -136,6 +146,7 @@ const scheduledBlocks = computed<ClassBlock[]>(() => {
         startTime: startTime,
         duration: duration,
         color: "green" as const,
+        preference: getPreference(eventInfo.name),
       };
       console.log("Created block:", block);
       blocks.push(block);
@@ -174,6 +185,7 @@ const friend1Blocks = computed<ClassBlock[]>(() => {
         startTime: startTime,
         duration: duration,
         color: "blue" as const,
+        preference: eventInfo.score ?? undefined,
       };
       blocks.push(block);
     });
@@ -211,6 +223,7 @@ const friend2Blocks = computed<ClassBlock[]>(() => {
         startTime: startTime,
         duration: duration,
         color: "pink" as const,
+        preference: eventInfo.score ?? undefined,
       };
       blocks.push(block);
     });

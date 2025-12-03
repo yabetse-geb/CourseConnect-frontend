@@ -13,6 +13,7 @@ import {
   scheduleEvent,
   unscheduleEvent,
   getUserSchedule,
+  type EventInfoWithScore,
 } from "@/api/concepts/SchedulingAPI";
 import { getEventInfo, getAllCourses } from "@/api/concepts/CourseCatalog";
 import { useAuthStore } from "@/stores/auth";
@@ -27,11 +28,29 @@ const temporaryEvent = ref<{ event: CourseEvent; courseName: string } | null>(
 // Track scheduled events from backend
 const scheduledEvents = ref<EventInfo[]>([]);
 
+// Track course preferences (courseId -> preference score)
+const coursePreferences = ref<Map<string, number>>(new Map());
+
+// Store course name to ID mapping for preferences
+const courseNameToId = ref<Map<string, string>>(new Map());
+
+// Computed: preferences indexed by course name for WeekCalendar
+const preferencesByCourseName = computed(() => {
+  const prefs = new Map<string, number>();
+  courseNameToId.value.forEach((courseId, courseName) => {
+    const score = coursePreferences.value.get(courseId);
+    if (score !== undefined) {
+      prefs.set(courseName, score);
+    }
+  });
+  return prefs;
+});
+
 // Track selected friends for schedule comparison (up to 2)
 interface SelectedFriend {
   id: string;
   username: string;
-  schedule: EventInfo[];
+  schedule: EventInfoWithScore[];
 }
 const selectedFriends = ref<SelectedFriend[]>([]);
 
@@ -68,24 +87,70 @@ const fetchSchedule = async () => {
     if (!user) {
       console.warn("No user found, cannot fetch schedule");
       scheduledEvents.value = [];
+      coursePreferences.value = new Map();
       return;
     }
 
-    // Get event information from user's schedule (pass session as user parameter)
+    // Get event information from user's schedule (now includes preference scores)
     const eventInfo = await getUserSchedule(user);
     console.log("Fetched schedule from API:", eventInfo);
-    // eventInfo is already an array of EventInfo, so use it directly
-    const events: EventInfo[] = eventInfo;
-    scheduledEvents.value = events;
+    
+    // Get all courses to map course names to IDs
+    const allCourses = await getAllCourses();
+    const nameToId = new Map<string, string>();
+    allCourses.forEach(course => {
+      nameToId.set(course.name, course.course);
+    });
+    courseNameToId.value = nameToId;
+    
+    // Extract preferences from the schedule response, mapping to course IDs
+    const prefs = new Map<string, number>();
+    eventInfo.forEach((event) => {
+      if (event.score !== null && event.score !== undefined) {
+        const courseId = nameToId.get(event.name);
+        if (courseId) {
+          prefs.set(courseId, event.score);
+        }
+      }
+    });
+    coursePreferences.value = prefs;
+    console.log("Extracted preferences from schedule:", prefs);
+    
+    // Store events
+    scheduledEvents.value = eventInfo;
     console.log("Updated scheduledEvents.value:", scheduledEvents.value);
   } catch (err) {
     console.error("Failed to fetch schedule:", err);
     scheduledEvents.value = [];
+    coursePreferences.value = new Map();
   }
 };
 
 // Refresh schedule
 const refreshSchedule = async () => {
+  await fetchSchedule();
+};
+
+// Get preference for selected course
+const selectedCoursePreference = computed(() => {
+  if (!selectedCourse.value) return null;
+  const courseId = selectedCourse.value.course; // Use course ID
+  return coursePreferences.value.get(courseId) ?? null;
+});
+
+// Handle preference change from CourseInfo
+const handlePreferenceChanged = async (courseId: string, score: number) => {
+  coursePreferences.value.set(courseId, score);
+  console.log(`Preference updated: ${courseId} = ${score}`);
+  // Refresh schedule to get updated preferences for all events
+  await fetchSchedule();
+};
+
+// Handle preference clear from CourseInfo
+const handlePreferenceCleared = async (courseId: string) => {
+  coursePreferences.value.delete(courseId);
+  console.log(`Preference cleared: ${courseId}`);
+  // Refresh schedule to get updated preferences for all events
   await fetchSchedule();
 };
 
@@ -257,12 +322,28 @@ onMounted(() => {
             Clear All
           </button>
         </div>
+        <div class="preference-legend">
+          <span class="preference-legend-title">Preference:</span>
+          <span class="preference-legend-item">
+            <span class="preference-indicator likely"></span>
+            Likely
+          </span>
+          <span class="preference-legend-item">
+            <span class="preference-indicator maybe"></span>
+            Maybe
+          </span>
+          <span class="preference-legend-item">
+            <span class="preference-indicator not-likely"></span>
+            Not likely
+          </span>
+        </div>
         <!-- User's own schedule (always displayed as green blocks) -->
         <!-- This is why the current user is filtered out from GroupScheduleList -->
         <WeekCalendar
           :scheduled-events="scheduledEvents"
           :friend1-events="friend1Schedule"
           :friend2-events="friend2Schedule"
+          :course-preferences="preferencesByCourseName"
           @block-clicked="handleBlockClick"
         />
       </div>
@@ -275,9 +356,12 @@ onMounted(() => {
         <CourseInfo
           :course="selectedCourse"
           :scheduled-event-ids="scheduledEventIds"
+          :current-preference="selectedCoursePreference"
           @event-selected="handleEventSelected"
           @add-event="handleAddEvent"
           @remove-event="handleRemoveEvent"
+          @preference-changed="handlePreferenceChanged"
+          @preference-cleared="handlePreferenceCleared"
         />
       </div>
     </div>
@@ -407,6 +491,50 @@ onMounted(() => {
 
 .clear-comparison-btn:hover {
   background: var(--color-background-mute);
+}
+
+.preference-legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: hsla(160, 30%, 50%, 0.1);
+  border: 1px solid hsla(160, 30%, 50%, 0.25);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.preference-legend-title {
+  font-weight: 500;
+  margin-right: 0.25rem;
+}
+
+.preference-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.preference-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.preference-indicator.likely {
+  background: #66bb6a;
+}
+
+.preference-indicator.maybe {
+  background: #fdd835;
+}
+
+.preference-indicator.not-likely {
+  background: #e57373;
 }
 
 .course-toggle-buttons {

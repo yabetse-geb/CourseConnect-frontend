@@ -1,6 +1,6 @@
 import { apiCall } from "../api";
 import { useAuthStore } from "@/stores/auth";
-import type { TimeSlot } from "./CourseCatalog";
+import type { TimeSlot, EventInfo } from "./CourseCatalog";
 
 /**
  * Scheduling Concept API Functions
@@ -9,6 +9,23 @@ import type { TimeSlot } from "./CourseCatalog";
  * Note: The concept server creates endpoints based on method names from the backend implementation.
  * All ID types (User, Event, Schedule) are represented as strings.
  */
+
+/**
+ * Extended EventInfo that includes preference score from the GetUserSchedule sync
+ */
+export interface EventInfoWithScore extends EventInfo {
+  score?: number | null; // Preference score if available (0=not likely, 1=maybe, 2=likely)
+}
+
+/**
+ * Course info returned from getScheduleCourses
+ */
+export interface ScheduleCourseInfo {
+  course: string;
+  name: string;
+  tags: string[];
+  info: string;
+}
 
 /**
  * Helper function to get the current session token from the auth store
@@ -75,16 +92,32 @@ export async function unscheduleEvent(
  * Retrieves all event information from a user's schedule.
  * API Spec: POST /api/Scheduling/_getUserSchedule
  * @param targetUser - The user whose schedule to retrieve
- * @returns Array of objects containing event details (event, name, type, times)
+ * @returns Array of objects containing event details (event, name, type, times, score)
  */
-export async function getUserSchedule(targetUser: string): Promise<{ event: string, name: string; type: string; times: TimeSlot }[]> {
+export async function getUserSchedule(targetUser: string): Promise<EventInfoWithScore[]> {
   const session = getSessionToken();
   const response = await apiCall(
     "/Scheduling/_getUserSchedule",
     { targetUser, session },
     "getUserSchedule"
   );
-  return response.results as { event: string, name: string; type: string; times: TimeSlot }[];
+  return response.results as EventInfoWithScore[];
+}
+
+/**
+ * Retrieves unique course information from a user's schedule.
+ * API Spec: POST /api/Scheduling/_getScheduleCourses
+ * @param targetUser - The user whose schedule courses to retrieve
+ * @returns Array of unique courses with details (course, name, tags, info)
+ */
+export async function getScheduleCourses(targetUser: string): Promise<ScheduleCourseInfo[]> {
+  const session = getSessionToken();
+  const response = await apiCall(
+    "/Scheduling/_getScheduleCourses",
+    { targetUser, session },
+    "getScheduleCourses"
+  );
+  return response.results as ScheduleCourseInfo[];
 }
 
 /**
@@ -111,5 +144,6 @@ export const SchedulingAPI = {
   scheduleEvent,
   unscheduleEvent,
   getUserSchedule,
+  getScheduleCourses,
   getScheduleComparison,
 };
