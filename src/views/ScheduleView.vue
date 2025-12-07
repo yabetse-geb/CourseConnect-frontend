@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import WeekCalendar from "../components/WeekCalendar.vue";
 import CourseSearch from "../components/CourseSearch.vue";
 import CourseInfo from "../components/CourseInfo.vue";
@@ -21,6 +21,7 @@ import { useAuthStore } from "@/stores/auth";
 const authStore = useAuthStore();
 
 const selectedCourse = ref<Course | null>(null);
+const courseInfoRef = ref<HTMLElement | null>(null);
 const temporaryEvent = ref<{ event: CourseEvent; courseName: string } | null>(
   null
 );
@@ -158,6 +159,7 @@ const handleCourseSelected = (course: Course) => {
   selectedCourse.value = course;
   // Clear temporary event when selecting a new course
   temporaryEvent.value = null;
+  scrollToCourseInfo();
 };
 
 const handleBlockClick = async (courseName: string) => {
@@ -167,6 +169,7 @@ const handleBlockClick = async (courseName: string) => {
     const course = courses.find((c) => c.name === courseName);
     if (course) {
       selectedCourse.value = course;
+      scrollToCourseInfo();
     }
   } catch (err) {
     console.error("Failed to load course from block click:", err);
@@ -256,6 +259,51 @@ const clearAllFriends = () => {
 const handleShowCourse = (courseName: string) => {
   // This function was used to show hidden courses, but hiding is no longer supported
   console.log("Show course:", courseName);
+};
+
+// Scroll to CourseInfo component with custom smooth animation
+const scrollToCourseInfo = () => {
+  // Start immediately - element always exists in DOM
+  if (!courseInfoRef.value) {
+    // Fallback: if element doesn't exist, wait for next tick (shouldn't happen normally)
+    nextTick().then(() => {
+      if (courseInfoRef.value) {
+        startScrollAnimation(courseInfoRef.value);
+      }
+    });
+    return;
+  }
+  
+  startScrollAnimation(courseInfoRef.value);
+};
+
+const startScrollAnimation = (element: HTMLElement) => {
+  const startPosition = window.scrollY;
+  const elementRect = element.getBoundingClientRect();
+  const targetPosition = elementRect.top + startPosition - 60; // 60px offset for navigation bar
+  const distance = targetPosition - startPosition;
+  const duration = 900; // 900ms for slower, more visible scroll
+  const startTime = performance.now(); // Initialize immediately
+  
+  // Easing function: ease-in-out
+  const easeInOut = (t: number): number => {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  };
+  
+  const animateScroll = (currentTime: number) => {
+    const timeElapsed = currentTime - startTime;
+    const progress = Math.min(timeElapsed / duration, 1);
+    const easedProgress = easeInOut(progress);
+    
+    window.scrollTo(0, startPosition + distance * easedProgress);
+    
+    if (progress < 1) {
+      requestAnimationFrame(animateScroll);
+    }
+  };
+  
+  // Start immediately instead of waiting for next frame
+  animateScroll(performance.now());
 };
 
 // Fetch schedule on mount
@@ -352,7 +400,7 @@ onMounted(() => {
       <div class="left-column">
         <CourseSearch @course-selected="handleCourseSelected" />
       </div>
-      <div class="right-column">
+      <div class="right-column" ref="courseInfoRef">
         <CourseInfo
           :course="selectedCourse"
           :scheduled-event-ids="scheduledEventIds"
