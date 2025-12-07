@@ -4,6 +4,7 @@ import WeekCalendar from "../components/WeekCalendar.vue";
 import CourseSearch from "../components/CourseSearch.vue";
 import CourseInfo from "../components/CourseInfo.vue";
 import GroupScheduleList from "../components/GroupScheduleList.vue";
+import SectionHoverInfo from "../components/SectionHoverInfo.vue";
 import type {
   Course,
   CourseEvent,
@@ -77,6 +78,17 @@ const scheduledCourseNames = computed(() => {
 const scheduledEventIds = computed(() => {
   return new Set(scheduledEvents.value.map((se) => se.event));
 });
+
+// Track hovered section for SectionHoverInfo component
+const hoveredSection = ref<{
+  eventId: string;
+  courseName: string;
+  type: string;
+} | null>(null);
+
+const handleSectionHover = (eventId: string, courseName: string, type: string) => {
+  hoveredSection.value = { eventId, courseName, type };
+};
 
 // Fetch the user's own schedule from backend
 // This schedule is always displayed in the calendar (green blocks)
@@ -322,6 +334,12 @@ onMounted(() => {
           @friend-selected="handleFriendSelected"
           @friend-deselected="handleFriendDeselected"
         />
+        <SectionHoverInfo
+          :event-id="hoveredSection?.eventId ?? null"
+          :course-name="hoveredSection?.courseName ?? null"
+          :section-type="hoveredSection?.type ?? null"
+          :session="authStore.session"
+        />
       </div>
       <div class="calendar-container">
         <div
@@ -393,6 +411,7 @@ onMounted(() => {
           :friend2-events="friend2Schedule"
           :course-preferences="preferencesByCourseName"
           @block-clicked="handleBlockClick"
+          @section-hover="handleSectionHover"
         />
       </div>
     </div>
@@ -437,6 +456,9 @@ onMounted(() => {
   flex-shrink: 0;
   max-height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .friends-column :deep(.friends-box) {

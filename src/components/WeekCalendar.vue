@@ -36,6 +36,8 @@
             :column-index="block.columnIndex"
             :total-columns="block.totalColumns"
             @block-clicked="(courseName) => emit('block-clicked', courseName)"
+            @section-hover="(eventId, courseName, type) => emit('section-hover', eventId, courseName, type)"
+            @section-leave="() => emit('section-leave')"
           />
         </div>
       </div>
@@ -91,6 +93,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "block-clicked", courseName: string): void;
+  (e: "section-hover", eventId: string, courseName: string, type: string): void;
+  (e: "section-leave"): void;
 }>();
 
 const weekDays = ["MON", "TUE", "WED", "THU", "FRI"];

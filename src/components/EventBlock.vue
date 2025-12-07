@@ -4,6 +4,8 @@
     :class="[colors.length === 1 ? colors[0] : 'multi-color']"
     :style="blockStyle"
     @click="handleClick"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
   >
     <!-- Multi-color background stripes -->
     <div v-if="colors.length > 1" class="color-stripes">
@@ -61,6 +63,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: "block-clicked", courseName: string): void;
+  (e: "section-hover", eventId: string, courseName: string, type: string): void;
+  (e: "section-leave"): void;
 }>();
 
 const displayCode = computed(() => {
@@ -103,6 +107,14 @@ const blockStyle = computed(() => {
 
 const handleClick = () => {
   emit("block-clicked", props.courseName);
+};
+
+const handleMouseEnter = () => {
+  emit("section-hover", props.eventId, props.courseName, props.type);
+};
+
+const handleMouseLeave = () => {
+  emit("section-leave");
 };
 </script>
 
