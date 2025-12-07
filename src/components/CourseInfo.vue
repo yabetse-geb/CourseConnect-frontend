@@ -522,6 +522,25 @@ const formatCourseInfo = (info: string): string => {
   // Add line break before "Links:" to put links on a new line
   formatted = formatted.replace(/(Links:)/gi, '<br><br>$1')
   
+  // Format links section: Convert "Label: URL" pattern to "Label: <a>URL</a>" with line breaks
+  // Match pattern like "Course Catalog: http://..." or "Class Evaluations (for 6.1800): https://..."
+  // This regex matches a label (can contain letters, numbers, spaces, parentheses, periods, hyphens) ending with colon, followed by a URL
+  // Updated to handle labels like "Course Data on OpenGrades:", "Class Evaluations (for 6.1800):", etc.
+  const linkPattern = /([A-Za-z0-9\s().-]+):\s*(https?:\/\/[^\s<>"{}|\\^`[\]]+)/gi
+  formatted = formatted.replace(linkPattern, (match, label, url) => {
+    // Create anchor tag with proper attributes, preserving the label
+    // Add line break before each link entry to separate them
+    return `<br>${label}: <a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+  })
+  
+  // Handle case where multiple links appear on the same line (after anchor tag conversion)
+  // Add line breaks between consecutive link entries that appear on the same line
+  // Pattern: "</a> Label:" should become "</a><br>Label:"
+  formatted = formatted.replace(/(<\/a>)\s+([A-Za-z0-9\s().-]+:\s*<a)/g, '$1<br>$2')
+  
+  // Clean up multiple consecutive line breaks (more than 2)
+  formatted = formatted.replace(/(<br>\s*){3,}/gi, '<br><br>')
+  
   return formatted
 }
 </script>
@@ -692,6 +711,7 @@ const formatCourseInfo = (info: string): string => {
   font-size: 0.9rem;
   margin-top: 0.5rem;
 }
+
 
 .btn {
   padding: 0.5rem 1rem;

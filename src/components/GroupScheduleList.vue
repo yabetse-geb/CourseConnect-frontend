@@ -216,7 +216,11 @@ async function loadFriends() {
       })
     );
 
-    friends.value = friendsWithUsernames;
+    // Filter out the current user
+    const currentUserId = authStore.user;
+    friends.value = friendsWithUsernames.filter(
+      (friend) => friend.memberId !== currentUserId
+    );
   } catch (e: any) {
     error.value = e.message || "Failed to load friends";
     console.error("Error loading friends:", e);
@@ -260,7 +264,11 @@ async function loadGroupMembers(groupId: string) {
       })
     );
 
-    groupMembers.value[groupId] = membersWithUsernames;
+    // Filter out the current user
+    const currentUserId = authStore.user;
+    groupMembers.value[groupId] = membersWithUsernames.filter(
+      (member) => member.memberId !== currentUserId
+    );
   } catch (e: any) {
     console.error(`Error loading members for group ${groupId}:`, e);
     groupMembers.value[groupId] = [];
