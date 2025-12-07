@@ -1,13 +1,36 @@
 <template>
   <div
     class="class-block"
-    :class="[color]"
+    :class="[colors.length === 1 ? colors[0] : 'multi-color']"
     :style="blockStyle"
     @click="handleClick"
   >
-    <div v-if="preferenceColor" class="preference-indicator" :style="{ backgroundColor: preferenceColor }"></div>
-    <div class="block-code">{{ displayCode }}</div>
-    <div class="block-type">{{ displayType }}</div>
+    <!-- Multi-color background stripes -->
+    <div v-if="colors.length > 1" class="color-stripes">
+      <div
+        v-for="(color, index) in colors"
+        :key="index"
+        class="color-stripe"
+        :class="[color]"
+        :style="{ width: `${100 / colors.length}%` }"
+      >
+        <div
+          v-if="preferenceColors[index]"
+          class="preference-indicator"
+          :style="{ backgroundColor: preferenceColors[index] }"
+        ></div>
+      </div>
+    </div>
+    <!-- Single color preference indicator -->
+    <div
+      v-if="colors.length === 1 && preferenceColors[0]"
+      class="preference-indicator"
+      :style="{ backgroundColor: preferenceColors[0] }"
+    ></div>
+    <div class="block-content">
+      <div class="block-code">{{ displayCode }}</div>
+      <div class="block-type">{{ displayType }}</div>
+    </div>
   </div>
 </template>
 
@@ -21,8 +44,8 @@ interface Props {
   eventId: string;
   startTime: number; // in hours (e.g., 9.5 for 9:30 AM)
   duration: number; // in hours
-  color: "red" | "green" | "pink" | "gray" | "blue";
-  preference?: number; // 0=not likely (red), 1=maybe (yellow), 2=likely (green)
+  colors: ("red" | "green" | "pink" | "gray" | "blue")[]; // Support multiple colors
+  preferences: (number | undefined)[]; // Multiple preferences for merged blocks
   startHour?: number; // First hour in the grid (default: 8)
   hourHeight?: number; // Height of each hour slot in pixels (default: 60)
   columnIndex?: number; // For side-by-side display of overlapping events
@@ -50,13 +73,17 @@ const displayType = computed(() => {
   return colonIndex !== -1 ? props.type.substring(0, colonIndex) : props.type
 })
 
-const preferenceColor = computed(() => {
-  if (props.preference === undefined) return null;
-  if (props.preference === 0) return '#e57373'; // red - not likely
-  if (props.preference === 1) return '#fdd835'; // yellow - maybe
-  if (props.preference === 2) return '#66bb6a'; // green - likely
+const getPreferenceColor = (preference: number | undefined): string | null => {
+  if (preference === undefined) return null;
+  if (preference === 0) return '#e57373'; // red - not likely
+  if (preference === 1) return '#fdd835'; // yellow - maybe
+  if (preference === 2) return '#66bb6a'; // green - likely
   return null;
-})
+};
+
+const preferenceColors = computed(() => {
+  return props.preferences.map((pref) => getPreferenceColor(pref));
+});
 
 const blockStyle = computed(() => {
   const top = (props.startTime - props.startHour) * props.hourHeight;
@@ -83,7 +110,6 @@ const handleClick = () => {
 .class-block {
   position: absolute;
   border-radius: 4px;
-  padding: 6px 8px;
   font-size: 11px;
   overflow: hidden;
   cursor: pointer;
@@ -96,9 +122,61 @@ const handleClick = () => {
   z-index: 10;
 }
 
+.color-stripes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.color-stripe {
+  height: 100%;
+  position: relative;
+}
+
+.color-stripe .preference-indicator {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+}
+
+.color-stripe.red {
+  background: #e57373;
+}
+
+.color-stripe.green {
+  background: #66bb6a;
+}
+
+.color-stripe.pink {
+  background: #f06292;
+}
+
+.color-stripe.gray {
+  background: #90a4ae;
+}
+
+.color-stripe.blue {
+  background: #64b5f6;
+}
+
+.block-content {
+  position: relative;
+  padding: 6px 8px;
+  z-index: 1;
+}
+
+.class-block.multi-color {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
 .preference-indicator {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
   right: 4px;
   width: 12px;
   height: 12px;

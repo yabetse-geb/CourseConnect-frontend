@@ -30,8 +30,8 @@
             :event-id="block.eventId"
             :start-time="block.startTime"
             :duration="block.duration"
-            :color="block.color"
-            :preference="block.preference"
+            :colors="block.colors"
+            :preferences="block.preferences"
             :start-hour="hours[0]"
             :column-index="block.columnIndex"
             :total-columns="block.totalColumns"
@@ -49,6 +49,8 @@ import EventBlock from "./EventBlock.vue";
 import type { EventInfo } from "@/api/concepts/CourseCatalog";
 import type { EventInfoWithScore } from "@/api/concepts/SchedulingAPI";
 
+type BlockColor = "red" | "green" | "pink" | "gray" | "blue";
+
 interface ClassBlock {
   id: string;
   code: string;
@@ -58,11 +60,24 @@ interface ClassBlock {
   day: string;
   startTime: number; // in hours (e.g., 9.5 for 9:30 AM)
   duration: number; // in hours
-  color: "red" | "green" | "pink" | "gray" | "blue";
+  color: BlockColor;
   preference?: number; // 0=not likely (red), 1=maybe (yellow), 2=likely (green)
 }
 
-interface ClassBlockWithLayout extends ClassBlock {
+interface MergedClassBlock {
+  id: string;
+  code: string;
+  type: string;
+  courseName: string;
+  eventId: string;
+  day: string;
+  startTime: number;
+  duration: number;
+  colors: BlockColor[]; // Multiple colors for merged blocks
+  preferences: (number | undefined)[]; // Multiple preferences for merged blocks
+}
+
+interface ClassBlockWithLayout extends MergedClassBlock {
   columnIndex: number;
   totalColumns: number;
 }
@@ -247,8 +262,56 @@ const allBlocks = computed<ClassBlock[]>(() => {
   return blocks;
 });
 
+// Merge blocks that have the same course at the same time
+const mergeMatchingBlocks = (blocks: ClassBlock[]): MergedClassBlock[] => {
+  const merged: MergedClassBlock[] = [];
+  const processed = new Set<string>();
+
+  blocks.forEach((block) => {
+    if (processed.has(block.id)) return;
+
+    // Find all blocks with the same course, day, start time and duration
+    const matching = blocks.filter(
+      (b) =>
+        b.courseName === block.courseName &&
+        b.day === block.day &&
+        b.startTime === block.startTime &&
+        b.duration === block.duration
+    );
+
+    // Mark all matching blocks as processed
+    matching.forEach((b) => processed.add(b.id));
+
+    // Create merged block with all unique colors and their corresponding preferences
+    const colorPreferencePairs: { color: BlockColor; preference: number | undefined }[] = [];
+    const seenColors = new Set<BlockColor>();
+    
+    matching.forEach((b) => {
+      if (!seenColors.has(b.color)) {
+        seenColors.add(b.color);
+        colorPreferencePairs.push({ color: b.color, preference: b.preference });
+      }
+    });
+    
+    merged.push({
+      id: matching.map((b) => b.id).join("-"),
+      code: block.code,
+      type: block.type,
+      courseName: block.courseName,
+      eventId: block.eventId,
+      day: block.day,
+      startTime: block.startTime,
+      duration: block.duration,
+      colors: colorPreferencePairs.map((p) => p.color),
+      preferences: colorPreferencePairs.map((p) => p.preference),
+    });
+  });
+
+  return merged;
+};
+
 // Check if two blocks overlap in time
-const blocksOverlap = (a: ClassBlock, b: ClassBlock): boolean => {
+const blocksOverlap = (a: MergedClassBlock, b: MergedClassBlock): boolean => {
   const aEnd = a.startTime + a.duration;
   const bEnd = b.startTime + b.duration;
   return a.startTime < bEnd && b.startTime < aEnd;
@@ -256,7 +319,7 @@ const blocksOverlap = (a: ClassBlock, b: ClassBlock): boolean => {
 
 // Assign column positions to overlapping blocks
 const assignColumnPositions = (
-  blocks: ClassBlock[]
+  blocks: MergedClassBlock[]
 ): ClassBlockWithLayout[] => {
   if (blocks.length === 0) return [];
 
@@ -264,8 +327,8 @@ const assignColumnPositions = (
   const sorted = [...blocks].sort((a, b) => a.startTime - b.startTime);
 
   // Find overlapping groups
-  const groups: ClassBlock[][] = [];
-  let currentGroup: ClassBlock[] = [];
+  const groups: MergedClassBlock[][] = [];
+  let currentGroup: MergedClassBlock[] = [];
 
   sorted.forEach((block) => {
     if (currentGroup.length === 0) {
@@ -308,7 +371,8 @@ const assignColumnPositions = (
 
 const getBlocksForDay = (day: string): ClassBlockWithLayout[] => {
   const dayBlocks = allBlocks.value.filter((block) => block.day === day);
-  return assignColumnPositions(dayBlocks);
+  const mergedBlocks = mergeMatchingBlocks(dayBlocks);
+  return assignColumnPositions(mergedBlocks);
 };
 
 const formatHour = (hour: number) => {
