@@ -61,7 +61,7 @@ interface ClassBlock {
   startTime: number; // in hours (e.g., 9.5 for 9:30 AM)
   duration: number; // in hours
   color: BlockColor;
-  preference?: number; // 0=not likely (red), 1=maybe (yellow), 2=likely (green)
+  preference?: number; // 0=not likely (deep orange), 1=maybe (yellow), 2=likely (cyan)
 }
 
 interface MergedClassBlock {

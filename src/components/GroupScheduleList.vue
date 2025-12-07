@@ -528,12 +528,12 @@ onUnmounted(() => {
 }
 
 .member-item.selected-first {
-  border-left: 3px solid #64b5f6;
-  background-color: hsla(200, 100%, 50%, 0.15);
+  border-left: 3px solid #9575cd;
+  background-color: hsla(262, 52%, 63%, 0.15);
 }
 
 .member-item.selected-first:hover {
-  background-color: hsla(200, 100%, 50%, 0.25);
+  background-color: hsla(262, 52%, 63%, 0.25);
 }
 
 .member-item.selected-second {

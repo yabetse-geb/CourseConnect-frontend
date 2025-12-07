@@ -460,8 +460,8 @@ onMounted(() => {
 }
 
 .legend-color.friend1-color {
-  background: #64b5f6;
-  border: 1px solid #1976d2;
+  background: #9575cd;
+  border: 1px solid #7e57c2;
 }
 
 .legend-color.friend2-color {
@@ -470,7 +470,7 @@ onMounted(() => {
 }
 
 .friend-name-1 {
-  color: #64b5f6;
+  color: #9575cd;
 }
 
 .friend-name-2 {
@@ -526,7 +526,7 @@ onMounted(() => {
 }
 
 .preference-indicator.likely {
-  background: #66bb6a;
+  background: #00bcd4;
 }
 
 .preference-indicator.maybe {
@@ -534,7 +534,7 @@ onMounted(() => {
 }
 
 .preference-indicator.not-likely {
-  background: #e57373;
+  background: #ff5722;
 }
 
 .course-toggle-buttons {

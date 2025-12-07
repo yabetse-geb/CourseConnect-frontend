@@ -629,7 +629,7 @@ const formatCourseInfo = (info: string): string => {
 }
 
 .preference-circle-green {
-  background-color: #66bb6a;
+  background-color: #00bcd4;
 }
 
 .preference-circle-yellow {
@@ -637,7 +637,7 @@ const formatCourseInfo = (info: string): string => {
 }
 
 .preference-circle-red {
-  background-color: #e57373;
+  background-color: #ff5722;
 }
 
 .preference-clear {
@@ -646,7 +646,7 @@ const formatCourseInfo = (info: string): string => {
 
 .preference-clear:hover {
   color: var(--color-text);
-  border-color: #e57373;
+  border-color: #ff5722;
 }
 
 .group-filter-section {

@@ -75,9 +75,9 @@ const displayType = computed(() => {
 
 const getPreferenceColor = (preference: number | undefined): string | null => {
   if (preference === undefined) return null;
-  if (preference === 0) return '#e57373'; // red - not likely
+  if (preference === 0) return '#ff5722'; // deep orange - not likely
   if (preference === 1) return '#fdd835'; // yellow - maybe
-  if (preference === 2) return '#66bb6a'; // green - likely
+  if (preference === 2) return '#00bcd4'; // cyan - likely
   return null;
 };
 
@@ -161,7 +161,7 @@ const handleClick = () => {
 }
 
 .color-stripe.blue {
-  background: #64b5f6;
+  background: #9575cd;
 }
 
 .block-content {
@@ -219,7 +219,7 @@ const handleClick = () => {
 }
 
 .class-block.blue {
-  background: #64b5f6;
-  border: 1px solid #1976d2;
+  background: #9575cd;
+  border: 1px solid #7e57c2;
 }
 </style>
