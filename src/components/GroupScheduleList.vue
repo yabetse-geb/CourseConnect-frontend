@@ -29,7 +29,10 @@ interface Group {
   groupName: string;
 }
 
-const currentTab = ref<string>("Friends"); // Default to Friends tab
+// Special identifier for the "All" option
+const ALL_TAB_ID = "__ALL__";
+
+const currentTab = ref<string>(ALL_TAB_ID); // Default to "All" tab
 const groups = ref<Group[]>([]);
 const friends = ref<Member[]>([]);
 const groupMembers = ref<Record<string, Member[]>>({});
@@ -40,9 +43,31 @@ const showDropdown = ref(false);
 
 // Computed property for current tab's members
 const currentMembers = computed(() => {
+  if (currentTab.value === ALL_TAB_ID) {
+    // Combine all friends and all group members, removing duplicates
+    const allMembersMap = new Map<string, Member>();
+    
+    // Add all friends
+    friends.value.forEach((friend) => {
+      allMembersMap.set(friend.memberId, friend);
+    });
+    
+    // Add all group members (duplicates will be overwritten, keeping the first occurrence)
+    Object.values(groupMembers.value).forEach((members) => {
+      members.forEach((member) => {
+        if (!allMembersMap.has(member.memberId)) {
+          allMembersMap.set(member.memberId, member);
+        }
+      });
+    });
+    
+    return Array.from(allMembersMap.values());
+  }
+  
   if (currentTab.value === "Friends") {
     return friends.value;
   }
+  
   return groupMembers.value[currentTab.value] || [];
 });
 
@@ -57,6 +82,7 @@ const filteredMembers = computed(() => {
 
 // Computed property for current selection display name
 const currentSelectionName = computed(() => {
+  if (currentTab.value === ALL_TAB_ID) return "All";
   if (currentTab.value === "Friends") return "Friends";
   const group = groups.value.find((g) => g.groupId === currentTab.value);
   return group?.groupName || "Select...";
@@ -190,11 +216,7 @@ async function loadFriends() {
       })
     );
 
-    // Filter out current user from friends list
-    const currentUserId = authStore.user;
-    friends.value = friendsWithUsernames.filter(
-      (friend) => friend.memberId !== currentUserId
-    );
+    friends.value = friendsWithUsernames;
   } catch (e: any) {
     error.value = e.message || "Failed to load friends";
     console.error("Error loading friends:", e);
@@ -238,11 +260,7 @@ async function loadGroupMembers(groupId: string) {
       })
     );
 
-    // Filter out current user from group members
-    const currentUserId = authStore.user;
-    groupMembers.value[groupId] = membersWithUsernames.filter(
-      (member) => member.memberId !== currentUserId
-    );
+    groupMembers.value[groupId] = membersWithUsernames;
   } catch (e: any) {
     console.error(`Error loading members for group ${groupId}:`, e);
     groupMembers.value[groupId] = [];
@@ -333,6 +351,13 @@ onUnmounted(() => {
         <span class="caret">v</span>
       </button>
       <ul v-if="showDropdown" class="dropdown-menu">
+        <li
+          class="dropdown-item"
+          :class="{ active: currentTab === ALL_TAB_ID }"
+          @click.stop="selectOption(ALL_TAB_ID)"
+        >
+          All
+        </li>
         <li
           class="dropdown-item"
           :class="{ active: currentTab === 'Friends' }"
@@ -528,12 +553,12 @@ onUnmounted(() => {
 }
 
 .member-item.selected-first {
-  border-left: 3px solid #9575cd;
-  background-color: hsla(262, 52%, 63%, 0.15);
+  border-left: 3px solid #64b5f6;
+  background-color: hsla(200, 100%, 50%, 0.15);
 }
 
 .member-item.selected-first:hover {
-  background-color: hsla(262, 52%, 63%, 0.25);
+  background-color: hsla(200, 100%, 50%, 0.25);
 }
 
 .member-item.selected-second {
