@@ -12,6 +12,7 @@ interface Props {
   session: string | null;
   userId?: string | null; // Optional, kept for backward compatibility
   refreshKey?: number;
+  showAddFriend?: boolean; // Whether to show the add friend search section
 }
 
 const props = defineProps<Props>();
@@ -415,12 +416,20 @@ onMounted(() => {
           placeholder="Search:"
           class="search-input"
           @input="handleSearch"
-          @keyup.enter="handleAddFriend"
-          @focus="handleInputFocus"
-          @blur="handleInputBlur"
+          @keyup.enter="
+            props.showAddFriend !== false ? handleAddFriend() : undefined
+          "
+          @focus="
+            props.showAddFriend !== false ? handleInputFocus() : undefined
+          "
+          @blur="props.showAddFriend !== false ? handleInputBlur() : undefined"
         />
         <ul
-          v-if="showSuggestions && filteredSuggestions.length > 0"
+          v-if="
+            showSuggestions &&
+            filteredSuggestions.length > 0 &&
+            props.showAddFriend !== false
+          "
           class="suggestions-list"
           style="display: block"
         >
@@ -434,7 +443,13 @@ onMounted(() => {
           </li>
         </ul>
       </div>
-      <button class="add-button" @click="handleAddFriend">Add</button>
+      <button
+        v-if="props.showAddFriend !== false"
+        class="add-button"
+        @click="handleAddFriend"
+      >
+        Add
+      </button>
     </div>
 
     <div v-if="error" class="error-message">{{ error }}</div>
