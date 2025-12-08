@@ -419,7 +419,7 @@ onMounted(() => {
       <div class="left-column">
         <CourseSearch @course-selected="handleCourseSelected" />
       </div>
-      <div class="right-column" ref="courseInfoRef">
+      <div class="middle-column" ref="courseInfoRef">
         <CourseInfo
           :course="selectedCourse"
           :scheduled-event-ids="scheduledEventIds"

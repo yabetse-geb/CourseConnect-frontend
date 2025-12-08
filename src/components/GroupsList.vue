@@ -8,11 +8,14 @@ import {
   createGroup,
   requestToJoin,
   getUserRequests,
+  isGroupAdmin,
+  getGroupRequests,
 } from "@/api/concepts/GroupingAPI";
 
 interface Props {
   session: string | null;
   refreshKey?: number;
+  pendingRequestsCounts?: Record<string, number>;
 }
 
 const props = defineProps<Props>();
@@ -26,6 +29,7 @@ const authStore = useAuthStore();
 interface Group {
   groupId: string;
   groupName: string;
+  hasPendingRequests?: boolean;
 }
 
 interface PendingRequest {
@@ -95,9 +99,11 @@ async function loadUserGroups() {
         try {
           const response = await getGroupName(groupId);
           const groupName = response?.name?.trim() || `Group ${groupId}`;
+          const hasPendingRequests = (props.pendingRequestsCounts?.[groupId] || 0) > 0;
           return {
             groupId,
             groupName,
+            hasPendingRequests,
           };
         } catch (e) {
           console.error(
@@ -107,6 +113,7 @@ async function loadUserGroups() {
           return {
             groupId,
             groupName: `Group ${groupId}`,
+            hasPendingRequests: false,
           };
         }
       })
@@ -390,6 +397,20 @@ watch(
   }
 );
 
+// Watch for pending requests counts changes
+watch(
+  () => props.pendingRequestsCounts,
+  (newCounts) => {
+    if (newCounts) {
+      groups.value = groups.value.map(group => ({
+        ...group,
+        hasPendingRequests: (newCounts[group.groupId] || 0) > 0
+      }));
+    }
+  },
+  { deep: true }
+);
+
 onMounted(() => {
   const session = props.session || authStore.session;
   if (session) {
@@ -463,7 +484,8 @@ onMounted(() => {
         class="group-item"
         @click="handleGroupClick(group)"
       >
-        <span>{{ group.groupName }}</span>
+        <span class="group-name">{{ group.groupName }}</span>
+        <span v-if="group.hasPendingRequests" class="pending-indicator" title="Pending join requests">!</span>
       </li>
       <li v-if="filteredGroups.length === 0" class="empty-message">
         No groups yet
@@ -603,7 +625,15 @@ onMounted(() => {
   background-color: var(--color-background-mute);
 }
 
-.group-item span {
+.pending-indicator {
+  color: #fdd835;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+
+.group-name {
   flex: 1;
 }
 

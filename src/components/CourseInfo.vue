@@ -13,7 +13,8 @@
             <div class="preference-buttons">
               <button
                 @click="handlePreferenceChange(2)"
-                :class="['preference-btn', 'preference-likely', { 'preference-selected': currentPreference === 2 }]"
+                :disabled="!hasScheduledEvents"
+                :class="['preference-btn', 'preference-likely', { 'preference-selected': currentPreference === 2, 'preference-disabled': !hasScheduledEvents }]"
                 title="Likely taking it"
               >
                 <span class="preference-circle preference-circle-green"></span>
@@ -21,7 +22,8 @@
               </button>
               <button
                 @click="handlePreferenceChange(1)"
-                :class="['preference-btn', 'preference-maybe', { 'preference-selected': currentPreference === 1 }]"
+                :disabled="!hasScheduledEvents"
+                :class="['preference-btn', 'preference-maybe', { 'preference-selected': currentPreference === 1, 'preference-disabled': !hasScheduledEvents }]"
                 title="Maybe taking it"
               >
                 <span class="preference-circle preference-circle-yellow"></span>
@@ -29,7 +31,8 @@
               </button>
               <button
                 @click="handlePreferenceChange(0)"
-                :class="['preference-btn', 'preference-unlikely', { 'preference-selected': currentPreference === 0 }]"
+                :disabled="!hasScheduledEvents"
+                :class="['preference-btn', 'preference-unlikely', { 'preference-selected': currentPreference === 0, 'preference-disabled': !hasScheduledEvents }]"
                 title="Not likely taking it"
               >
                 <span class="preference-circle preference-circle-red"></span>
@@ -165,6 +168,12 @@ const getCourseCode = (courseName: string): string => {
   const colonIndex = courseName.indexOf(':');
   return colonIndex >= 0 ? courseName.substring(0, colonIndex).trim() : courseName;
 };
+
+// Check if any events are scheduled for this course
+const hasScheduledEvents = computed(() => {
+  if (!props.course || !props.scheduledEventIds) return false;
+  return props.course.events.some(event => props.scheduledEventIds?.has(event.event));
+});
 
 // Handle preference change
 const handlePreferenceChange = async (score: number) => {
@@ -637,6 +646,16 @@ const formatCourseInfo = (info: string): string => {
   border-color: hsla(160, 100%, 37%, 1);
   background-color: rgba(76, 175, 80, 0.1);
   font-weight: 600;
+}
+
+.preference-btn.preference-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preference-btn.preference-disabled:hover {
+  border-color: var(--color-border);
+  transform: none;
 }
 
 .preference-circle {

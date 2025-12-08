@@ -21,6 +21,8 @@ const username = ref("");
 
 const currentUserId = ref<string | null>(authStore.user || null);
 const friendListRefreshKey = ref(0);
+const groupsRefreshKey = ref(0);
+const pendingRequestsCounts = ref<Record<string, number>>({});
 const selectedGroupId = ref<string | null>(null);
 const selectedGroupName = ref<string | null>(null);
 
@@ -36,6 +38,14 @@ function handleFriendRequestSent(username: string) {
 function handleGroupSelected(groupId: string, groupName: string) {
   selectedGroupId.value = groupId;
   selectedGroupName.value = groupName;
+}
+
+function handleRequestsUpdated() {
+  groupsRefreshKey.value += 1;
+}
+
+function handlePendingCountsUpdated(counts: Record<string, number>) {
+  pendingRequestsCounts.value = { ...pendingRequestsCounts.value, ...counts };
 }
 
 async function getUserFromSession() {
@@ -174,12 +184,16 @@ onMounted(async () => {
     <div class="row-2" v-if="authStore.session">
       <GroupsList
         :session="authStore.session"
+        :refreshKey="groupsRefreshKey"
+        :pendingRequestsCounts="pendingRequestsCounts"
         @group-selected="handleGroupSelected"
       />
       <GroupMem
         :session="authStore.session"
         :selectedGroupId="selectedGroupId"
         :selectedGroupName="selectedGroupName"
+        @requests-updated="handleRequestsUpdated"
+        @pending-counts-updated="handlePendingCountsUpdated"
       />
       <BlockedListView :session="authStore.session" />
     </div>

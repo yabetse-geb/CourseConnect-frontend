@@ -20,6 +20,10 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const emit = defineEmits<{
+  (e: "requests-updated"): void;
+  (e: "pending-counts-updated", counts: Record<string, number>): void;
+}>();
 
 const authStore = useAuthStore();
 
@@ -139,6 +143,9 @@ async function loadGroupData() {
 
       joinRequests.value = requestsWithUsernames;
       console.log("GroupMem: Final join requests array:", joinRequests.value);
+      
+      // Emit pending counts for this group
+      emit("pending-counts-updated", { [props.selectedGroupId]: requestsResponse.length });
     } else {
       joinRequests.value = [];
     }
@@ -161,6 +168,7 @@ async function handleConfirmRequest(requesterId: string) {
   try {
     await confirmRequest(props.selectedGroupId, requesterId);
     await loadGroupData();
+    emit("requests-updated");
   } catch (e: any) {
     error.value = e.message || "Failed to confirm request";
     console.error("Error confirming request:", e);
@@ -180,6 +188,7 @@ async function handleDeclineRequest(requesterId: string) {
   try {
     await declineRequest(props.selectedGroupId, requesterId);
     await loadGroupData();
+    emit("requests-updated");
   } catch (e: any) {
     error.value = e.message || "Failed to decline request";
     console.error("Error declining request:", e);
@@ -327,13 +336,7 @@ onMounted(() => {
               >
                 Make Admin
               </button>
-              <button
-                v-else
-                class="remove-admin-button"
-                @click="handleAdjustRole(member.memberId)"
-              >
-                Remove Admin
-              </button>
+             
               <button
                 class="remove-button"
                 @click="handleRemoveMember(member.memberId)"
