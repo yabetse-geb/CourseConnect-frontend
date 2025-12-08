@@ -14,6 +14,9 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const emit = defineEmits<{
+  (event: "blocked-updated"): void;
+}>();
 const authStore = useAuthStore();
 
 interface BlockedUser {
@@ -242,6 +245,7 @@ async function handleBlock() {
     await blockUserBySession(session, targetUsername);
     searchQuery.value = "";
     await loadBlockedUsers();
+    emit("blocked-updated");
   } catch (e: any) {
     error.value = e.message || "Failed to block user";
     console.error("BlockedListView: Error blocking user:", e);
@@ -267,6 +271,7 @@ async function handleUnblock(username: string) {
     console.log(`BlockedListView: Unblocking user ${username}`);
     await unblockUserBySession(session, username);
     await loadBlockedUsers();
+    emit("blocked-updated");
   } catch (e: any) {
     error.value = e.message || "Failed to unblock user";
     console.error("BlockedListView: Error unblocking user:", e);
