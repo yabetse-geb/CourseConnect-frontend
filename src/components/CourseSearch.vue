@@ -14,7 +14,7 @@
       <div class="filters-area">
         <div class="filter-buttons">
           <button
-            v-for="tag in filterTags"
+            v-for="tag in defaultFilterTags"
             :key="tag"
             :class="[
               'filter-btn',
@@ -23,6 +23,43 @@
             @click="toggleTag(tag)"
           >
             {{ tag }}
+          </button>
+          
+          <template v-if="showMoreFilters">
+            <button
+              v-for="tag in additionalFilterTags"
+              :key="tag"
+              :class="[
+                'filter-btn',
+                { active: filters.selectedTags.includes(tag) },
+              ]"
+              @click="toggleTag(tag)"
+            >
+              {{ tag }}
+            </button>
+          </template>
+          
+          <button
+            class="more-filters-btn"
+            @click="showMoreFilters = !showMoreFilters"
+          >
+            {{ showMoreFilters ? 'Less Filters' : 'More Filters' }}
+          </button>
+          
+          <button
+            class="sort-btn"
+            @click="toggleRatingSort"
+            title="Sort by Rating"
+          >
+            Rating {{ ratingSortDirection === 'asc' ? '\u2193' : ratingSortDirection === 'desc' ? '\u2191' : '\u2212' }}
+          </button>
+          
+          <button
+            class="sort-btn"
+            @click="toggleHoursSort"
+            title="Sort by Hours"
+          >
+            Hours {{ hoursSortDirection === 'asc' ? '\u2193' : hoursSortDirection === 'desc' ? '\u2191' : '\u2212' }}
           </button>
         </div>
       </div>
@@ -48,6 +85,14 @@
           @click="handleCourseClick(course)"
         >
           <div class="course-name">{{ course.name }}</div>
+          <div class="course-stats">
+            <div v-if="extractRating(course.tags)" class="course-rating">
+              Rating: {{ extractRating(course.tags) }}
+            </div>
+            <div v-if="extractHours(course.tags)" class="course-hours">
+              Hours: {{ extractHours(course.tags) }}
+            </div>
+          </div>
         </li>
       </ul>
 
@@ -72,8 +117,65 @@ import { getAllCourses, type Course } from "@/api/concepts/CourseCatalog";
 
 const PAGE_SIZE = 5;
 
-// Filter tags
-const filterTags = ["HASS", "CI-M", "CI-H"];
+// Filter tags - default filters shown initially
+const defaultFilterTags = ["HASS", "CI-H", "CI-M"];
+
+// Additional filters shown when expanded
+const additionalFilterTags = [
+  "HASS-H",
+  "HASS-A",
+  "HASS-S",
+  "CI-HW",
+  "Not CI-H",
+  "No Final",
+  "No Prereq",
+  "U",
+  "G",
+  "<= 9 Units",
+  "REST",
+  "Lab"
+];
+
+// State for showing additional filters
+const showMoreFilters = ref(false);
+
+// Sorting state
+type SortDirection = 'asc' | 'desc' | null;
+const ratingSortDirection = ref<SortDirection>(null);
+const hoursSortDirection = ref<SortDirection>(null);
+
+// Helper functions to extract rating and hours from tags
+const extractRating = (tags: string[]): string | null => {
+  const ratingTag = tags.find(tag => tag.startsWith('Rating:'));
+  return ratingTag ? ratingTag.replace('Rating:', '').trim() : null;
+};
+
+const extractHours = (tags: string[]): string | null => {
+  const hoursTag = tags.find(tag => tag.startsWith('Hours:'));
+  return hoursTag ? hoursTag.replace('Hours:', '').trim() : null;
+};
+
+// Toggle rating sort direction
+const toggleRatingSort = () => {
+  if (ratingSortDirection.value === null) {
+    ratingSortDirection.value = 'desc'; // Start with descending (high to low, arrow up)
+  } else if (ratingSortDirection.value === 'desc') {
+    ratingSortDirection.value = 'asc'; // Then ascending (low to high, arrow down)
+  } else {
+    ratingSortDirection.value = null;
+  }
+};
+
+// Toggle hours sort direction
+const toggleHoursSort = () => {
+  if (hoursSortDirection.value === null) {
+    hoursSortDirection.value = 'desc'; // Start with descending (high to low, arrow up)
+  } else if (hoursSortDirection.value === 'desc') {
+    hoursSortDirection.value = 'asc'; // Then ascending (low to high, arrow down)
+  } else {
+    hoursSortDirection.value = null;
+  }
+};
 
 // Emits
 const emit = defineEmits<{
@@ -95,11 +197,13 @@ const filters = reactive({
 const filteredCourses = computed(() => {
   let filtered = courses.value;
 
-  // Filter by tags
+  // Filter by tags (excluding Rating and Hours tags from filter matching)
   if (filters.selectedTags.length > 0) {
     filtered = filtered.filter((course) => {
-      // Use the tags array from the course object
-      const courseTags = course.tags || [];
+      // Use the tags array from the course object, but exclude Rating and Hours tags
+      const courseTags = (course.tags || []).filter(
+        tag => !tag.startsWith('Rating:') && !tag.startsWith('Hours:')
+      );
       return filters.selectedTags.every((tag) => courseTags.includes(tag));
     });
   }
@@ -112,7 +216,42 @@ const filteredCourses = computed(() => {
     );
   }
 
-  return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+  return [...filtered].sort((a, b) => {
+    // Apply rating sort if active
+    if (ratingSortDirection.value) {
+      const aRatingStr = extractRating(a.tags);
+      const bRatingStr = extractRating(b.tags);
+      
+      // Handle courses without ratings based on sort direction
+      if (!aRatingStr && !bRatingStr) return a.name.localeCompare(b.name);
+      if (!aRatingStr) return ratingSortDirection.value === 'desc' ? -1 : 1; // desc: non-rated at top, asc: at bottom
+      if (!bRatingStr) return ratingSortDirection.value === 'desc' ? 1 : -1;
+      
+      const aRating = parseFloat(aRatingStr);
+      const bRating = parseFloat(bRatingStr);
+      const ratingDiff = ratingSortDirection.value === 'asc' ? aRating - bRating : bRating - aRating;
+      if (ratingDiff !== 0) return ratingDiff;
+    }
+    
+    // Apply hours sort if active
+    if (hoursSortDirection.value) {
+      const aHoursStr = extractHours(a.tags);
+      const bHoursStr = extractHours(b.tags);
+      
+      // Handle courses without hours based on sort direction
+      if (!aHoursStr && !bHoursStr) return a.name.localeCompare(b.name);
+      if (!aHoursStr) return hoursSortDirection.value === 'desc' ? -1 : 1; // desc: non-hours at top, asc: at bottom
+      if (!bHoursStr) return hoursSortDirection.value === 'desc' ? 1 : -1;
+      
+      const aHours = parseFloat(aHoursStr);
+      const bHours = parseFloat(bHoursStr);
+      const hoursDiff = hoursSortDirection.value === 'asc' ? aHours - bHours : bHours - aHours;
+      if (hoursDiff !== 0) return hoursDiff;
+    }
+    
+    // Default: sort by name
+    return a.name.localeCompare(b.name);
+  });
 });
 
 const visibleStart = ref(0);
@@ -279,6 +418,40 @@ onMounted(() => {
   border-color: #a31f34;
 }
 
+.more-filters-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #a31f34;
+  border-radius: 4px;
+  background-color: #2c2c2c;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.more-filters-btn:hover {
+  background-color: #3c3c3c;
+  transform: scale(1.05);
+}
+
+.sort-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #a31f34;
+  border-radius: 4px;
+  background-color: #2c2c2c;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sort-btn:hover {
+  background-color: #3c3c3c;
+  transform: scale(1.05);
+}
+
 .loading-state,
 .error-state,
 .no-results {
@@ -340,6 +513,10 @@ onMounted(() => {
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
 }
 
 .course-item:hover {
@@ -350,6 +527,23 @@ onMounted(() => {
 .course-name {
   font-size: 1rem;
   color: #ffffff;
+  flex: 1;
+}
+
+.course-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.course-rating,
+.course-hours {
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(163, 31, 52, 0.2);
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 @media (min-width: 768px) {

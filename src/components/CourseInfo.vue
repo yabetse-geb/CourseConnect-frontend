@@ -277,13 +277,45 @@ const matchesEventType = (event: CourseEvent, keywords: string[]): boolean => {
 const eventTypeColumns = computed(() => {
   if (!props.course) return [];
 
+  // Day order for sorting (Monday = 0, Sunday = 6)
+  const dayOrder: { [key: string]: number } = {
+    'Mon': 0, 'Monday': 0,
+    'Tue': 1, 'Tuesday': 1,
+    'Wed': 2, 'Wednesday': 2,
+    'Thu': 3, 'Thursday': 3,
+    'Fri': 4, 'Friday': 4,
+    'Sat': 5, 'Saturday': 5,
+    'Sun': 6, 'Sunday': 6
+  };
+
+  // Helper to get the earliest day value from an event's days array
+  const getEarliestDay = (days: string[]): number => {
+    const dayValues = days
+      .map(day => dayOrder[day] ?? 99)
+      .filter(val => val !== 99);
+    return dayValues.length > 0 ? Math.min(...dayValues) : 99;
+  };
+
   return eventTypeConfigs
     .map((config) => ({
       type: config.type,
       label: config.label,
-      events: props.course!.events.filter((event) =>
-        matchesEventType(event, config.keywords)
-      ),
+      events: props.course!.events
+        .filter((event) => matchesEventType(event, config.keywords))
+        .sort((a, b) => {
+          // First sort by earliest day of week
+          const aDayValue = getEarliestDay(a.times.days);
+          const bDayValue = getEarliestDay(b.times.days);
+          
+          if (aDayValue !== bDayValue) {
+            return aDayValue - bDayValue;
+          }
+          
+          // Then sort by start time
+          const aStart = a.times.startTime || "";
+          const bStart = b.times.startTime || "";
+          return aStart.localeCompare(bStart);
+        }),
     }))
     .filter((column) => column.events.length > 0); // Only include columns with events
 });
