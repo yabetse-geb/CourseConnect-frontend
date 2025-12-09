@@ -109,7 +109,9 @@ async function loadGroupData() {
     // Update member roles
     members.value = membersWithUsernames.map((member) => ({
       ...member,
-      role: admins.includes(member.memberId) ? ("ADMIN" as const) : ("MEMBER" as const),
+      role: admins.includes(member.memberId)
+        ? ("ADMIN" as const)
+        : ("MEMBER" as const),
     }));
 
     console.log("GroupMem: Final members array:", members.value);
@@ -143,9 +145,11 @@ async function loadGroupData() {
 
       joinRequests.value = requestsWithUsernames;
       console.log("GroupMem: Final join requests array:", joinRequests.value);
-      
+
       // Emit pending counts for this group
-      emit("pending-counts-updated", { [props.selectedGroupId]: requestsResponse.length });
+      emit("pending-counts-updated", {
+        [props.selectedGroupId]: requestsResponse.length,
+      });
     } else {
       joinRequests.value = [];
     }
@@ -336,7 +340,7 @@ onMounted(() => {
               >
                 Make Admin
               </button>
-             
+
               <button
                 class="remove-button"
                 @click="handleRemoveMember(member.memberId)"
@@ -357,8 +361,8 @@ onMounted(() => {
 
 <style scoped>
 .group-mem-box {
-  background-color: var(--color-background-soft);
-  border: 1px solid var(--color-border);
+  background-color: #a31f34;
+  border: 1px solid #a31f34;
   border-radius: 8px;
   padding: 20px;
   display: flex;
@@ -371,6 +375,7 @@ onMounted(() => {
   margin: 0 0 10px 0;
   font-size: 1.2rem;
   text-align: center;
+  color: #ffffff;
 }
 
 .group-content {
@@ -383,22 +388,23 @@ onMounted(() => {
 .group-name-header {
   font-size: 1.1rem;
   font-weight: 600;
-  color: white;
+  color: #ffffff;
   padding: 10px;
-  background-color: var(--color-background-mute);
+  background-color: #8a8b8c;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   text-align: center;
 }
 
 .requests-section {
-  border-bottom: 2px solid var(--color-border);
+  border-bottom: 2px solid #a31f34;
   padding-bottom: 15px;
 }
 
 .section-title {
   font-size: 1rem;
   font-weight: 600;
-  color: white;
+  color: #ffffff;
   margin: 0 0 10px 0;
 }
 
@@ -415,7 +421,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #a31f34;
 }
 
 .request-item:last-child,
@@ -437,7 +443,7 @@ onMounted(() => {
 
 .member-role {
   font-size: 0.85rem;
-  color: var(--color-text-muted);
+  color: #8a8b8c;
   text-transform: uppercase;
 }
 
@@ -461,30 +467,39 @@ onMounted(() => {
 }
 
 .accept-button {
-  background-color: #4caf50;
-  color: white;
+  background-color: #8a8b8c;
+  color: #ffffff;
+  border: 1px solid #a31f34;
+  transition: all 0.3s ease;
 }
 
 .accept-button:hover {
-  background-color: #45a049;
+  background-color: #8a8b8c;
+  transform: scale(1.05);
 }
 
 .decline-button {
-  background-color: #f44336;
-  color: white;
+  background-color: #8a8b8c;
+  color: #ffffff;
+  border: 1px solid #a31f34;
+  transition: all 0.3s ease;
 }
 
 .decline-button:hover {
-  background-color: #da190b;
+  background-color: #8a8b8c;
+  transform: scale(1.05);
 }
 
 .make-admin-button {
-  background-color: var(--color-button);
-  color: var(--color-button-text);
+  background-color: #8a8b8c;
+  color: #ffffff;
+  border: 1px solid #a31f34;
+  transition: all 0.3s ease;
 }
 
 .make-admin-button:hover {
-  background-color: var(--color-button-hover);
+  background-color: #8a8b8c;
+  transform: scale(1.05);
 }
 
 .remove-admin-button {
@@ -499,28 +514,31 @@ onMounted(() => {
 .remove-button {
   background: none;
   border: none;
-  color: var(--color-text);
+  color: #ffffff;
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0 5px;
   line-height: 1;
+  transition: all 0.3s ease;
 }
 
 .remove-button:hover {
-  color: var(--color-error, #ff4444);
+  color: #a31f34;
+  transform: scale(1.2);
 }
 
 .empty-message {
   text-align: center;
   padding: 20px;
-  color: var(--color-text-muted);
+  color: #8a8b8c;
   font-style: italic;
 }
 
 .error-message {
-  color: var(--color-error, #ff4444);
+  color: #ffffff;
   padding: 10px;
-  background-color: var(--color-background-mute);
+  background-color: #a31f34;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   font-size: 0.9rem;
 }
@@ -528,7 +546,6 @@ onMounted(() => {
 .loading {
   text-align: center;
   padding: 20px;
-  color: var(--color-text-muted);
+  color: #8a8b8c;
 }
 </style>
-

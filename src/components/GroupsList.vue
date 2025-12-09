@@ -52,9 +52,7 @@ const filteredGroups = computed(() => {
   if (!searchQuery.value) return groups.value;
   const query = searchQuery.value.toLowerCase();
   // Only filter user's actual groups, not all groups
-  return groups.value.filter((g) =>
-    g.groupName.toLowerCase().includes(query)
-  );
+  return groups.value.filter((g) => g.groupName.toLowerCase().includes(query));
 });
 
 // Computed property for autocomplete suggestions
@@ -88,7 +86,10 @@ async function loadUserGroups() {
 
     // Ensure groupIds is an array
     if (!Array.isArray(groupIds)) {
-      console.warn("GroupsList: getUserGroups did not return an array:", groupIds);
+      console.warn(
+        "GroupsList: getUserGroups did not return an array:",
+        groupIds
+      );
       groups.value = [];
       return;
     }
@@ -99,17 +100,15 @@ async function loadUserGroups() {
         try {
           const response = await getGroupName(groupId);
           const groupName = response?.name?.trim() || `Group ${groupId}`;
-          const hasPendingRequests = (props.pendingRequestsCounts?.[groupId] || 0) > 0;
+          const hasPendingRequests =
+            (props.pendingRequestsCounts?.[groupId] || 0) > 0;
           return {
             groupId,
             groupName,
             hasPendingRequests,
           };
         } catch (e) {
-          console.error(
-            `GroupsList: Error fetching name for ${groupId}:`,
-            e
-          );
+          console.error(`GroupsList: Error fetching name for ${groupId}:`, e);
           return {
             groupId,
             groupName: `Group ${groupId}`,
@@ -137,7 +136,7 @@ async function loadPendingRequests() {
 
   try {
     const response = await getUserRequests();
-    
+
     // Backend returns [{group: "id"}, ...], so extract the group property from each object
     const groupIds: string[] = response
       .map((item: any) => item.group)
@@ -198,7 +197,10 @@ async function loadAllGroups() {
 
     // Ensure groupIds is an array
     if (!Array.isArray(groupIds)) {
-      console.warn("GroupsList: getAllGroups did not return an array:", groupIds);
+      console.warn(
+        "GroupsList: getAllGroups did not return an array:",
+        groupIds
+      );
       allGroupsWithNames.value = [];
       return;
     }
@@ -217,7 +219,10 @@ async function loadAllGroups() {
             groupName,
           };
         } catch (e) {
-          console.error(`GroupsList (loadAllGroups): Error fetching name for ${groupId}:`, e);
+          console.error(
+            `GroupsList (loadAllGroups): Error fetching name for ${groupId}:`,
+            e
+          );
           return null;
         }
       })
@@ -296,13 +301,13 @@ async function handleCreateGroup() {
     const result = await createGroup(groupName);
     const newGroupId = result.group;
     searchQuery.value = "";
-    
+
     // Optimistically add the group with the name we know
     const newGroup = {
       groupId: newGroupId,
       groupName: groupName,
     };
-    
+
     // Check if group already exists in the list
     const existingIndex = groups.value.findIndex(
       (g) => g.groupId === newGroupId
@@ -313,7 +318,7 @@ async function handleCreateGroup() {
       // Update existing entry with correct name
       groups.value[existingIndex] = newGroup;
     }
-    
+
     // Reload to ensure consistency
     await loadUserGroups();
   } catch (e: any) {
@@ -344,13 +349,13 @@ async function handleRequestToJoin() {
     }
 
     await requestToJoin(group.groupId);
-    
+
     // Optimistically add to pending requests
     const pendingRequest: PendingRequest = {
       groupId: group.groupId,
       groupName: group.groupName,
     };
-    
+
     // Check if already in pending requests
     const existingIndex = pendingRequests.value.findIndex(
       (r) => r.groupId === group.groupId
@@ -358,7 +363,7 @@ async function handleRequestToJoin() {
     if (existingIndex === -1) {
       pendingRequests.value.push(pendingRequest);
     }
-    
+
     searchQuery.value = "";
     // Reload user groups in case the request was auto-accepted
     await loadUserGroups();
@@ -402,9 +407,9 @@ watch(
   () => props.pendingRequestsCounts,
   (newCounts) => {
     if (newCounts) {
-      groups.value = groups.value.map(group => ({
+      groups.value = groups.value.map((group) => ({
         ...group,
-        hasPendingRequests: (newCounts[group.groupId] || 0) > 0
+        hasPendingRequests: (newCounts[group.groupId] || 0) > 0,
       }));
     }
   },
@@ -485,7 +490,12 @@ onMounted(() => {
         @click="handleGroupClick(group)"
       >
         <span class="group-name">{{ group.groupName }}</span>
-        <span v-if="group.hasPendingRequests" class="pending-indicator" title="Pending join requests">!</span>
+        <span
+          v-if="group.hasPendingRequests"
+          class="pending-indicator"
+          title="Pending join requests"
+          >!</span
+        >
       </li>
       <li v-if="filteredGroups.length === 0" class="empty-message">
         No groups yet
@@ -496,8 +506,8 @@ onMounted(() => {
 
 <style scoped>
 .groups-box {
-  background-color: var(--color-background-soft);
-  border: 1px solid var(--color-border);
+  background-color: #a31f34;
+  border: 1px solid #a31f34;
   border-radius: 8px;
   padding: 20px;
   display: flex;
@@ -510,6 +520,7 @@ onMounted(() => {
   margin: 0 0 10px 0;
   font-size: 1.2rem;
   text-align: center;
+  color: #ffffff;
 }
 
 .search-section {
@@ -527,14 +538,15 @@ onMounted(() => {
 .search-input {
   width: 100%;
   padding: 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #a31f34;
   border-radius: 4px;
-  background-color: var(--color-background);
-  color: white;
+  background-color: #8a8b8c;
+  color: #ffffff;
 }
 
 .search-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+  opacity: 0.7;
 }
 
 .suggestions-list {
@@ -545,20 +557,20 @@ onMounted(() => {
   margin-top: 4px;
   padding: 0;
   list-style: none;
-  background-color: var(--color-background-soft);
-  border: 1px solid var(--color-border);
+  background-color: #0f0f0f;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
   z-index: 1000;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
 }
 
 .suggestion-item {
   padding: 10px;
   cursor: pointer;
-  color: white;
-  border-bottom: 1px solid var(--color-border);
+  color: #ffffff;
+  border-bottom: 1px solid #a31f34;
   transition: background-color 0.2s;
 }
 
@@ -567,7 +579,7 @@ onMounted(() => {
 }
 
 .suggestion-item:hover {
-  background-color: var(--color-background-mute);
+  background-color: #a31f34;
 }
 
 .button-group {
@@ -577,30 +589,34 @@ onMounted(() => {
 
 .create-button {
   padding: 8px 16px;
-  background-color: #555;
-  color: var(--color-button-text);
-  border: none;
+  background-color: #8a8b8c;
+  color: #ffffff;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
 .create-button:hover {
-  background-color: #666;
+  background-color: #8a8b8c;
+  transform: scale(1.05);
 }
 
 .join-button {
   padding: 8px 16px;
-  background-color: var(--color-button);
-  color: var(--color-button-text);
-  border: none;
+  background-color: #8a8b8c;
+  color: #ffffff;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
 .join-button:hover {
-  background-color: var(--color-button-hover);
+  background-color: #8a8b8c;
+  transform: scale(1.05);
 }
 
 .groups-list {
@@ -616,13 +632,15 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #a31f34;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  color: #ffffff;
 }
 
 .group-item:hover {
-  background-color: var(--color-background-mute);
+  background-color: rgba(163, 31, 52, 0.3);
+  transform: scale(1.02);
 }
 
 .pending-indicator {
@@ -640,14 +658,15 @@ onMounted(() => {
 .empty-message {
   text-align: center;
   padding: 20px;
-  color: var(--color-text-muted);
+  color: #8a8b8c;
   font-style: italic;
 }
 
 .error-message {
-  color: var(--color-error, #ff4444);
+  color: #ffffff;
   padding: 10px;
-  background-color: var(--color-background-mute);
+  background-color: #a31f34;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   font-size: 0.9rem;
 }
@@ -655,7 +674,7 @@ onMounted(() => {
 .loading {
   text-align: center;
   padding: 20px;
-  color: var(--color-text-muted);
+  color: #8a8b8c;
 }
 
 .pending-requests-section {
@@ -666,7 +685,7 @@ onMounted(() => {
 .pending-requests-header {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: #ffffff;
   margin: 0 0 10px 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -683,23 +702,23 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px;
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-background-mute);
+  border-bottom: 1px solid #a31f34;
+  background-color: #8a8b8c;
   border-radius: 4px;
   margin-bottom: 5px;
 }
 
 .pending-request-name {
   flex: 1;
-  color: white;
+  color: #ffffff;
 }
 
 .pending-label {
   font-size: 0.85rem;
-  color: var(--color-text-muted);
+  color: #ffffff;
   font-style: italic;
   padding: 2px 8px;
-  background-color: var(--color-background-soft);
+  background-color: #0f0f0f;
   border-radius: 3px;
 }
 </style>

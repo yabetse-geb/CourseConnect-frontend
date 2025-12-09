@@ -610,76 +610,74 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="row-2" v-if="authStore.session">
-      <GroupsList
-        :session="authStore.session"
-        :refreshKey="groupsRefreshKey"
-        :pendingRequestsCounts="pendingRequestsCounts"
-        @group-selected="handleGroupSelected"
-      />
-      <GroupMem
-        :session="authStore.session"
-        :selectedGroupId="selectedGroupId"
-        :selectedGroupName="selectedGroupName"
-        @requests-updated="handleRequestsUpdated"
-        @pending-counts-updated="handlePendingCountsUpdated"
-      />
+    <div v-if="authStore.session" class="groups-section">
+      <h2 class="groups-section-title">Managing Groups</h2>
+      <div class="row-2">
+        <GroupsList
+          :session="authStore.session"
+          :refreshKey="groupsRefreshKey"
+          :pendingRequestsCounts="pendingRequestsCounts"
+          @group-selected="handleGroupSelected"
+        />
+        <GroupMem
+          :session="authStore.session"
+          :selectedGroupId="selectedGroupId"
+          :selectedGroupName="selectedGroupName"
+          @requests-updated="handleRequestsUpdated"
+          @pending-counts-updated="handlePendingCountsUpdated"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .user-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #ffffff;
+  padding: 40px 20px;
+}
+
+.user-profile-section,
+.row-2 {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 40px 20px;
-  min-height: 100vh;
 }
 
 .page-header {
   text-align: center;
   margin-bottom: 50px;
   padding: 20px 0;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .page-title {
   font-size: 3rem;
   font-weight: 800;
   margin-bottom: 10px;
-  color: white;
-  background: linear-gradient(
-    135deg,
-    #ffffff 0%,
-    rgba(255, 255, 255, 0.8) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #0f0f0f;
   letter-spacing: -0.02em;
 }
 
 .page-subtitle {
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: #0f0f0f;
   font-weight: 400;
   margin: 0;
 }
 
 .user-profile-section {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.03) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #a31f34;
+  border: 1px solid #a31f34;
   border-radius: 20px;
   padding: 50px 40px;
   margin-bottom: 40px;
   display: flex;
   justify-content: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(163, 31, 52, 0.5);
 }
 
 .profile-details {
@@ -702,7 +700,7 @@ onMounted(async () => {
 .username-label {
   font-weight: 600;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 5px;
@@ -711,26 +709,21 @@ onMounted(async () => {
 .username-value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: white;
+  color: #ffffff;
   padding: 18px 32px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid #a31f34;
   border-radius: 16px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
+  background: #8a8b8c;
   min-width: 280px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(163, 31, 52, 0.5);
   transition: all 0.3s ease;
 }
 
 .username-value:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(163, 31, 52, 0.7);
+  border-color: #a31f34;
+  background: #8a8b8c;
 }
 
 .friends-section {
@@ -743,7 +736,7 @@ onMounted(async () => {
 .friends-label {
   font-weight: 600;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 5px;
@@ -758,20 +751,15 @@ onMounted(async () => {
 .friend-count-button {
   font-size: 1.8rem;
   font-weight: 700;
-  color: white;
+  color: #ffffff;
   padding: 16px 28px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid #a31f34;
   border-radius: 14px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
+  background: #8a8b8c;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 90px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(163, 31, 52, 0.5);
   position: relative;
   overflow: hidden;
 }
@@ -786,7 +774,7 @@ onMounted(async () => {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.1),
+    rgba(163, 31, 52, 0.5),
     transparent
   );
   transition: left 0.5s;
@@ -797,15 +785,10 @@ onMounted(async () => {
 }
 
 .friend-count-button:hover:not(:disabled) {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.18) 0%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: #8a8b8c;
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 6px 24px rgba(163, 31, 52, 0.7);
+  border-color: #a31f34;
 }
 
 .friend-count-button:active:not(:disabled) {
@@ -818,24 +801,19 @@ onMounted(async () => {
 }
 
 .friend-requests-icon-button {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #8a8b8c;
+  border: 1px solid #a31f34;
   border-radius: 14px;
   padding: 12px;
   cursor: pointer;
-  color: white;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 52px;
   height: 52px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(163, 31, 52, 0.5);
 }
 
 .friend-requests-icon-button svg {
@@ -843,15 +821,10 @@ onMounted(async () => {
 }
 
 .friend-requests-icon-button:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.18) 0%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: #8a8b8c;
+  transform: translateY(-3px) scale(1.08);
+  box-shadow: 0 6px 24px rgba(163, 31, 52, 0.7);
+  border-color: #a31f34;
 }
 
 .friend-requests-icon-button:hover svg {
@@ -873,7 +846,7 @@ onMounted(async () => {
 .blocked-label {
   font-weight: 600;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 5px;
@@ -882,20 +855,15 @@ onMounted(async () => {
 .blocked-count-button {
   font-size: 1.8rem;
   font-weight: 700;
-  color: white;
+  color: #ffffff;
   padding: 16px 28px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid #a31f34;
   border-radius: 14px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
+  background: #8a8b8c;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 90px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(163, 31, 52, 0.5);
   position: relative;
   overflow: hidden;
 }
@@ -910,7 +878,7 @@ onMounted(async () => {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.1),
+    rgba(163, 31, 52, 0.5),
     transparent
   );
   transition: left 0.5s;
@@ -921,15 +889,10 @@ onMounted(async () => {
 }
 
 .blocked-count-button:hover:not(:disabled) {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.18) 0%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: #8a8b8c;
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 6px 24px rgba(163, 31, 52, 0.7);
+  border-color: #a31f34;
 }
 
 .blocked-count-button:active:not(:disabled) {
@@ -947,7 +910,7 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(15, 15, 15, 0.85);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -967,12 +930,8 @@ onMounted(async () => {
 }
 
 .modal-content {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #0f0f0f;
+  border: 1px solid #a31f34;
   border-radius: 20px;
   max-width: 600px;
   width: 100%;
@@ -980,8 +939,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(163, 31, 52, 0.6);
   animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1013,22 +971,22 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 24px 28px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid #a31f34;
+  background: #a31f34;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: white;
+  color: #ffffff;
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .close-button {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
+  background: #0f0f0f;
+  border: 1px solid #a31f34;
+  color: #ffffff;
   font-size: 1.75rem;
   cursor: pointer;
   padding: 0;
@@ -1043,19 +1001,19 @@ onMounted(async () => {
 }
 
 .close-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: #a31f34;
+  border-color: #a31f34;
   transform: scale(1.1);
 }
 
 .add-friend-section {
   padding: 20px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #a31f34;
 }
 
 .add-friend-section h3 {
   margin: 0 0 15px 0;
-  color: white;
+  color: #ffffff;
   font-size: 1.2rem;
   font-weight: 600;
 }
@@ -1075,14 +1033,14 @@ onMounted(async () => {
 .add-friend-section .search-input {
   width: 100%;
   padding: 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #a31f34;
   border-radius: 4px;
-  background-color: var(--color-background);
-  color: white;
+  background-color: #0f0f0f;
+  color: #ffffff;
 }
 
 .add-friend-section .search-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: #8a8b8c;
 }
 
 .add-friend-section .suggestions-list {
@@ -1093,20 +1051,20 @@ onMounted(async () => {
   margin-top: 4px;
   padding: 0;
   list-style: none;
-  background-color: var(--color-background-soft);
-  border: 1px solid var(--color-border);
+  background-color: #0f0f0f;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
   z-index: 1000;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
 }
 
 .add-friend-section .suggestion-item {
   padding: 10px;
   cursor: pointer;
-  color: white;
-  border-bottom: 1px solid var(--color-border);
+  color: #ffffff;
+  border-bottom: 1px solid #a31f34;
   transition: background-color 0.2s;
 }
 
@@ -1115,21 +1073,24 @@ onMounted(async () => {
 }
 
 .add-friend-section .suggestion-item:hover {
-  background-color: var(--color-background-mute);
+  background-color: #a31f34;
 }
 
 .add-friend-section .add-button {
   padding: 8px 16px;
-  background-color: var(--color-button);
-  color: var(--color-button-text);
-  border: none;
+  background-color: #a31f34;
+  color: #ffffff;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.2s ease;
 }
 
 .add-friend-section .add-button:hover:not(:disabled) {
-  background-color: var(--color-button-hover);
+  background-color: #a31f34;
+  border-color: #a31f34;
+  opacity: 0.9;
 }
 
 .add-friend-section .add-button:disabled {
@@ -1138,9 +1099,10 @@ onMounted(async () => {
 }
 
 .add-friend-section .error-message {
-  color: var(--color-error, #ff4444);
+  color: #ffffff;
   padding: 10px;
-  background-color: var(--color-background-mute);
+  background-color: #a31f34;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   font-size: 0.9rem;
   margin-top: 10px;
@@ -1155,11 +1117,27 @@ onMounted(async () => {
   flex: 1;
 }
 
+.groups-section {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.groups-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0f0f0f;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
 .row-2 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   margin-top: 20px;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (max-width: 1024px) {

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { computed } from 'vue'
+import { RouterLink, RouterView, useRoute } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { computed } from "vue";
 
-const authStore = useAuthStore()
-const route = useRoute()
+const authStore = useAuthStore();
+const route = useRoute();
 
-const isAuthPage = computed(() => route.path === '/auth')
+const isAuthPage = computed(() => route.path === "/auth");
 </script>
 
 <template>
@@ -30,9 +30,9 @@ header {
   left: 0;
   right: 0;
   z-index: 1000;
-  background-color: var(--color-background-soft);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #a31f34;
+  border-bottom: 1px solid #a31f34;
+  box-shadow: 0 2px 4px rgba(163, 31, 52, 0.3);
   padding: 1rem 0;
 }
 
@@ -45,20 +45,22 @@ nav {
 }
 
 nav a {
-  color: var(--color-text);
+  color: #ffffff;
   text-decoration: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 nav a:hover {
-  background-color: var(--color-background);
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
 }
 
 nav a.router-link-exact-active {
-  color: var(--color-heading);
-  font-weight: 500;
+  color: #ffffff;
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 main {
