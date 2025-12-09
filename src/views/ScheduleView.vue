@@ -86,7 +86,11 @@ const hoveredSection = ref<{
   type: string;
 } | null>(null);
 
-const handleSectionHover = (eventId: string, courseName: string, type: string) => {
+const handleSectionHover = (
+  eventId: string,
+  courseName: string,
+  type: string
+) => {
   hoveredSection.value = { eventId, courseName, type };
 };
 
@@ -107,15 +111,15 @@ const fetchSchedule = async () => {
     // Get event information from user's schedule (now includes preference scores)
     const eventInfo = await getUserSchedule(user);
     console.log("Fetched schedule from API:", eventInfo);
-    
+
     // Get all courses to map course names to IDs
     const allCourses = await getAllCourses();
     const nameToId = new Map<string, string>();
-    allCourses.forEach(course => {
+    allCourses.forEach((course) => {
       nameToId.set(course.name, course.course);
     });
     courseNameToId.value = nameToId;
-    
+
     // Extract preferences from the schedule response, mapping to course IDs
     const prefs = new Map<string, number>();
     eventInfo.forEach((event) => {
@@ -128,7 +132,7 @@ const fetchSchedule = async () => {
     });
     coursePreferences.value = prefs;
     console.log("Extracted preferences from schedule:", prefs);
-    
+
     // Store events
     scheduledEvents.value = eventInfo;
     console.log("Updated scheduledEvents.value:", scheduledEvents.value);
@@ -285,7 +289,7 @@ const scrollToCourseInfo = () => {
     });
     return;
   }
-  
+
   startScrollAnimation(courseInfoRef.value);
 };
 
@@ -296,24 +300,24 @@ const startScrollAnimation = (element: HTMLElement) => {
   const distance = targetPosition - startPosition;
   const duration = 900; // 900ms for slower, more visible scroll
   const startTime = performance.now(); // Initialize immediately
-  
+
   // Easing function: ease-in-out
   const easeInOut = (t: number): number => {
     return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
   };
-  
+
   const animateScroll = (currentTime: number) => {
     const timeElapsed = currentTime - startTime;
     const progress = Math.min(timeElapsed / duration, 1);
     const easedProgress = easeInOut(progress);
-    
+
     window.scrollTo(0, startPosition + distance * easedProgress);
-    
+
     if (progress < 1) {
       requestAnimationFrame(animateScroll);
     }
   };
-  
+
   // Start immediately instead of waiting for next frame
   animateScroll(performance.now());
 };
@@ -352,7 +356,7 @@ onMounted(() => {
             @click="handleShowCourse(courseName)"
             class="course-toggle-btn"
           >
-            {{ courseName.split(':')[0] }}
+            {{ courseName.split(":")[0] }}
           </button>
         </div>
         <div class="comparison-header">
@@ -439,9 +443,11 @@ onMounted(() => {
 .scheduling-view {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  min-height: 100vh;
   padding: 2rem;
   gap: 2rem;
+  background: #ffffff;
+  width: 100%;
 }
 
 .schedule-row {
@@ -486,11 +492,11 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
-  background: hsla(200, 100%, 50%, 0.15);
-  border: 1px solid hsla(200, 100%, 50%, 0.3);
+  background: #8a8b8c;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   font-size: 0.875rem;
-  color: var(--color-text);
+  color: #ffffff;
   flex-wrap: wrap;
 }
 
@@ -501,7 +507,7 @@ onMounted(() => {
 }
 
 .comparison-header strong {
-  color: hsla(200, 100%, 60%, 1);
+  color: #ffffff;
 }
 
 .legend {
@@ -568,11 +574,11 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 0.75rem;
-  background: hsla(160, 30%, 50%, 0.1);
-  border: 1px solid hsla(160, 30%, 50%, 0.25);
+  background: #8a8b8c;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   font-size: 0.875rem;
-  color: var(--color-text);
+  color: #ffffff;
 }
 
 .preference-legend-title {
@@ -612,8 +618,8 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: var(--color-background-soft);
-  border: 1px solid var(--color-border);
+  background: #8a8b8c;
+  border: 1px solid #a31f34;
   border-radius: 4px;
 }
 

@@ -2,7 +2,11 @@
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { getAllFriendsBySession } from "@/api/concepts/FriendingAPI";
-import { getUserGroups, getGroupName, getMembers } from "@/api/concepts/GroupingAPI";
+import {
+  getUserGroups,
+  getGroupName,
+  getMembers,
+} from "@/api/concepts/GroupingAPI";
 import { getUsername } from "@/api/syncs/auth";
 
 interface Props {
@@ -46,12 +50,12 @@ const currentMembers = computed(() => {
   if (currentTab.value === ALL_TAB_ID) {
     // Combine all friends and all group members, removing duplicates
     const allMembersMap = new Map<string, Member>();
-    
+
     // Add all friends
     friends.value.forEach((friend) => {
       allMembersMap.set(friend.memberId, friend);
     });
-    
+
     // Add all group members (duplicates will be overwritten, keeping the first occurrence)
     Object.values(groupMembers.value).forEach((members) => {
       members.forEach((member) => {
@@ -60,14 +64,14 @@ const currentMembers = computed(() => {
         }
       });
     });
-    
+
     return Array.from(allMembersMap.values());
   }
-  
+
   if (currentTab.value === "Friends") {
     return friends.value;
   }
-  
+
   return groupMembers.value[currentTab.value] || [];
 });
 
@@ -99,7 +103,10 @@ async function loadUserGroups() {
     const groupIds = await getUserGroups();
 
     if (!Array.isArray(groupIds)) {
-      console.warn("GroupScheduleList: getUserGroups did not return an array:", groupIds);
+      console.warn(
+        "GroupScheduleList: getUserGroups did not return an array:",
+        groupIds
+      );
       groups.value = [];
       return;
     }
@@ -128,7 +135,7 @@ async function loadUserGroups() {
     );
 
     groups.value = groupsWithNames;
-    
+
     // Load members for each group
     for (const group of groupsWithNames) {
       await loadGroupMembers(group.groupId);
@@ -335,7 +342,7 @@ onMounted(() => {
       loading.value = false;
     });
   }
-  
+
   // Add click outside listener
   document.addEventListener("click", handleClickOutside);
 });
@@ -351,10 +358,7 @@ onUnmounted(() => {
 
     <!-- Dropdown Selector -->
     <div class="dropdown-container">
-      <button
-        class="dropdown-button"
-        @click.stop="toggleDropdown"
-      >
+      <button class="dropdown-button" @click.stop="toggleDropdown">
         <span>{{ currentSelectionName }}</span>
         <span class="caret">v</span>
       </button>
@@ -424,8 +428,8 @@ onUnmounted(() => {
 
 <style scoped>
 .group-schedule-box {
-  background-color: var(--color-background-soft);
-  border: 1px solid var(--color-border);
+  background-color: #a31f34;
+  border: 1px solid #a31f34;
   border-radius: 8px;
   padding: 20px;
   display: flex;
@@ -438,6 +442,7 @@ onUnmounted(() => {
   margin: 0 0 10px 0;
   font-size: 1.2rem;
   text-align: center;
+  color: #ffffff;
 }
 
 .dropdown-container {
@@ -448,25 +453,26 @@ onUnmounted(() => {
 .dropdown-button {
   width: 100%;
   padding: 8px 12px;
-  background-color: var(--color-background);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
+  background-color: #8a8b8c;
+  color: #ffffff;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.9rem;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 }
 
 .dropdown-button:hover {
-  background-color: var(--color-background-mute);
+  background-color: #8a8b8c;
+  transform: scale(1.02);
 }
 
 .caret {
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: #ffffff;
   transition: transform 0.2s;
 }
 
@@ -478,20 +484,20 @@ onUnmounted(() => {
   margin-top: 4px;
   padding: 0;
   list-style: none;
-  background-color: var(--color-background-soft);
-  border: 1px solid var(--color-border);
+  background-color: #0f0f0f;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
   z-index: 1000;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
 }
 
 .dropdown-item {
   padding: 10px 12px;
   cursor: pointer;
-  color: var(--color-text);
-  border-bottom: 1px solid var(--color-border);
+  color: #ffffff;
+  border-bottom: 1px solid #a31f34;
   transition: background-color 0.2s;
 }
 
@@ -500,12 +506,12 @@ onUnmounted(() => {
 }
 
 .dropdown-item:hover {
-  background-color: var(--color-background-mute);
+  background-color: #a31f34;
 }
 
 .dropdown-item.active {
-  background-color: hsla(200, 100%, 50%, 0.15);
-  color: var(--color-button);
+  background-color: #a31f34;
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -524,14 +530,15 @@ onUnmounted(() => {
 .search-input {
   width: 100%;
   padding: 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #a31f34;
   border-radius: 4px;
-  background-color: var(--color-background);
-  color: white;
+  background-color: #8a8b8c;
+  color: #ffffff;
 }
 
 .search-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+  opacity: 0.7;
 }
 
 .members-list {
@@ -547,13 +554,15 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #a31f34;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  color: #ffffff;
 }
 
 .member-item:hover {
-  background-color: var(--color-background-mute);
+  background-color: rgba(163, 31, 52, 0.3);
+  transform: scale(1.02);
 }
 
 .member-item.selected {
@@ -585,14 +594,15 @@ onUnmounted(() => {
 .empty-message {
   text-align: center;
   padding: 20px;
-  color: var(--color-text-muted);
+  color: #8a8b8c;
   font-style: italic;
 }
 
 .error-message {
-  color: var(--color-error, #ff4444);
+  color: #ffffff;
   padding: 10px;
-  background-color: var(--color-background-mute);
+  background-color: #a31f34;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   font-size: 0.9rem;
 }
@@ -600,7 +610,6 @@ onUnmounted(() => {
 .loading {
   text-align: center;
   padding: 20px;
-  color: var(--color-text-muted);
+  color: #8a8b8c;
 }
 </style>
-

@@ -410,8 +410,7 @@ onMounted(async () => {
 <template>
   <div class="user-page">
     <header class="page-header">
-      <h1 class="page-title">Welcome Back</h1>
-      <p class="page-subtitle">Manage your profile and connections</p>
+      <h1 class="page-title">Welcome!</h1>
     </header>
 
     <div class="user-profile-section">

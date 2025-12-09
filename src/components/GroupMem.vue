@@ -443,8 +443,9 @@ onMounted(() => {
 
 .member-role {
   font-size: 0.85rem;
-  color: #8a8b8c;
+  color: #ffffff;
   text-transform: uppercase;
+  opacity: 0.8;
 }
 
 .request-actions,

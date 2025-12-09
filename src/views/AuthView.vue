@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useAuthStore } from '@/stores/auth';
+import { ref } from "vue";
+import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
 const isLogin = ref(true);
-const username = ref('');
-const password = ref('');
+const username = ref("");
+const password = ref("");
 
 const toggleMode = () => {
   isLogin.value = !isLogin.value;
@@ -14,7 +14,7 @@ const toggleMode = () => {
 
 const handleSubmit = async () => {
   if (!username.value || !password.value) {
-    authStore.error = 'Please fill in all fields';
+    authStore.error = "Please fill in all fields";
     return;
   }
 
@@ -29,15 +29,15 @@ const handleSubmit = async () => {
 <template>
   <div class="auth-container">
     <div class="auth-card">
-      <h2>{{ isLogin ? 'Login' : 'Register' }}</h2>
-      
+      <h2>{{ isLogin ? "Login" : "Register" }}</h2>
+
       <form @submit.prevent="handleSubmit" class="auth-form">
         <div class="form-group">
           <label for="username">Username</label>
-          <input 
-            id="username" 
-            v-model="username" 
-            type="text" 
+          <input
+            id="username"
+            v-model="username"
+            type="text"
             placeholder="Enter username"
             required
           />
@@ -45,10 +45,10 @@ const handleSubmit = async () => {
 
         <div class="form-group">
           <label for="password">Password</label>
-          <input 
-            id="password" 
-            v-model="password" 
-            type="password" 
+          <input
+            id="password"
+            v-model="password"
+            type="password"
             placeholder="Enter password"
             required
           />
@@ -59,14 +59,16 @@ const handleSubmit = async () => {
         </div>
 
         <button type="submit" :disabled="authStore.loading">
-          {{ authStore.loading ? 'Processing...' : (isLogin ? 'Login' : 'Register') }}
+          {{
+            authStore.loading ? "Processing..." : isLogin ? "Login" : "Register"
+          }}
         </button>
       </form>
 
       <p class="toggle-text">
         {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
         <a href="#" @click.prevent="toggleMode">
-          {{ isLogin ? 'Register here' : 'Login here' }}
+          {{ isLogin ? "Register here" : "Login here" }}
         </a>
       </p>
     </div>
@@ -78,13 +80,15 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 60vh;
+  min-height: 100vh;
+  background: #ffffff;
 }
 
 .auth-card {
-  background: var(--color-background-soft);
+  background: #a31f34;
   padding: 2rem;
   border-radius: 8px;
+  border: 1px solid #a31f34;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 400px;
@@ -93,7 +97,7 @@ const handleSubmit = async () => {
 h2 {
   text-align: center;
   margin-bottom: 1.5rem;
-  color: var(--color-heading);
+  color: #ffffff;
 }
 
 .auth-form {
@@ -110,31 +114,42 @@ h2 {
 
 label {
   font-weight: bold;
-  color: var(--color-text);
+  color: #ffffff;
 }
 
 input {
   padding: 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid #a31f34;
   border-radius: 4px;
-  background: var(--color-background);
-  color: var(--color-text);
+  background: #8a8b8c;
+  color: #ffffff;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+input:focus {
+  outline: none;
+  border-color: #a31f34;
+  box-shadow: 0 0 0 2px rgba(163, 31, 52, 0.3);
 }
 
 button {
   margin-top: 1rem;
   padding: 0.75rem;
-  background-color: hsla(160, 100%, 37%, 1);
-  color: white;
-  border: none;
+  background-color: #8a8b8c;
+  color: #ffffff;
+  border: 1px solid #a31f34;
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 }
 
 button:hover:not(:disabled) {
-  background-color: hsla(160, 100%, 30%, 1);
+  background-color: #8a8b8c;
+  transform: scale(1.05);
 }
 
 button:disabled {
@@ -143,23 +158,29 @@ button:disabled {
 }
 
 .error-message {
-  color: #ff4444;
+  color: #ffffff;
   font-size: 0.9rem;
   text-align: center;
+  background-color: rgba(163, 31, 52, 0.3);
+  border: 1px solid #a31f34;
+  padding: 0.5rem;
+  border-radius: 4px;
 }
 
 .toggle-text {
   margin-top: 1.5rem;
   text-align: center;
   font-size: 0.9rem;
+  color: #ffffff;
 }
 
 .toggle-text a {
-  color: hsla(160, 100%, 37%, 1);
-  text-decoration: none;
+  color: #ffffff;
+  text-decoration: underline;
 }
 
 .toggle-text a:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  opacity: 0.8;
 }
 </style>
