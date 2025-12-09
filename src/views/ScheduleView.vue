@@ -393,7 +393,7 @@ onMounted(() => {
           </button>
         </div>
         <div class="preference-legend">
-          <span class="preference-legend-title">Preference:</span>
+          <span class="preference-legend-title">Likelihood to take:</span>
           <span class="preference-legend-item">
             <span class="preference-indicator likely"></span>
             Likely

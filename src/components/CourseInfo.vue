@@ -9,7 +9,7 @@
         <h2 class="course-title">{{ course.name }}</h2>
         <div class="course-header-controls">
           <div class="preference-section">
-            <label class="preference-label">Interest level:</label>
+            <label class="preference-label">Likelihood to take:</label>
             <div class="preference-buttons">
               <button
                 @click="handlePreferenceChange(2)"
