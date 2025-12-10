@@ -632,12 +632,10 @@ onMounted(() => {
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
 }
 
 .course-toggle-btn:hover {
-  background: hsla(160, 100%, 32%, 1);
-  transform: translateY(-1px);
+  background: hsla(160, 100%, 37%, 1);
 }
 
 .course-toggle-btn:active {
