@@ -752,8 +752,8 @@ const formatCourseInfo = (info: string): string => {
 }
 
 .preference-btn.preference-selected {
-  border-color: #a31f34;
-  background-color: #a31f34;
+  border-color: #66bb6a;
+  background-color: #66bb6a;
   color: #ffffff;
   font-weight: 600;
 }
