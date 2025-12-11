@@ -1,6 +1,37 @@
-# .
+# CourseConnect Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+[Course Connect](https://courseconnect-yena.onrender.com/), A Vue 3 + TypeScript application for collaborative course scheduling. CourseConnect allows students to view their course schedule, compare schedules with friends, and manage course preferences.
+
+## Features
+
+- **Interactive Schedule Calendar**: View courses across the week with an hourly grid layout
+- **Multi-User Scheduling**: Display schedules for the user and up to 2 friends side-by-side
+- **Merged Course Blocks**: When multiple students take the same course at the same time, the block displays color stripes for each student
+- **Preference Indicators**: Visual indicators for course preferences (not likely, maybe, likely) displayed on each course block
+- **Course Preferences**: Rate courses by preference level with visual feedback
+- **Friend Comparison**: Compare your schedule with friends to find common free time
+- **Course Search & Catalog**: Browse and search available courses
+- **Friend Management**: Add friends and manage friend requests
+- **Group Scheduling**: Create and view group schedules with multiple members
+
+## Color Scheme
+
+### Student Colors
+- **Green**: Your courses
+- **Purple**: Friend 1 courses
+- **Pink**: Friend 2 courses
+
+### Preference Indicator Colors
+- **Deep Orange**: Not likely (0)
+- **Yellow**: Maybe (1)
+- **Cyan**: Likely (2)
+
+## Tech Stack
+
+- **Framework**: Vue 3 with Composition API
+- **Language**: TypeScript
+- **Build Tool**: Vite
+- **Testing**: Vitest
 
 ## Recommended IDE Setup
 
@@ -14,14 +45,6 @@ This template should help get you started developing with Vue 3 in Vite.
 - Firefox:
   - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
   - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
 
 ## Project Setup
 
@@ -46,3 +69,15 @@ npm run build
 ```sh
 npm run test:unit
 ```
+
+## Type Support for `.vue` Imports in TS
+
+TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+
+## Project Structure
+
+- `src/components/`: Reusable Vue components (WeekCalendar, EventBlock, CourseSearch, etc.)
+- `src/views/`: Page-level components (AuthView, ScheduleView, UserView)
+- `src/api/`: API integration and data fetching
+- `src/stores/`: Pinia state management
+- `src/router/`: Vue Router configuration
